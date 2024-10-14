@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  pqpmath3ws-telegram-bot-app:
+    container_name: pqpmath3ws-telegram-bot-app
+    command: bash -c "cd /usr/src/app/src && pip install --no-cache-dir -r requirements.txt && python ./main.py && sleep infinity"
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - pqpmath3ws-telegram-bot-app-data:/usr/src/app
+    environment:
+      BOT_CLIENT_ID: ${BOT_CLIENT_ID}
+      BOT_SECRET_KEY: ${BOT_SECRET_KEY}
+      PROPOSALS_CHAT_ID: ${PROPOSALS_CHAT_ID}
+
+volumes:
+  pqpmath3ws-telegram-bot-app-data:
