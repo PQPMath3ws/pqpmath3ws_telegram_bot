@@ -57,8 +57,16 @@ class Commands:
         if current_user_state == "welcome_message":
             await self.__startChat(update=update, context=context)
         elif current_user_state == "waiting_reply_welcome_message":
-            if update.message.text.strip() == "📝 Fazer proposta de site / bot / aplicativo":
+            if (
+                update.message.text.strip()
+                == "📝 Fazer proposta de site / bot / aplicativo"
+            ):
                 await self.__startProposal(update=update, context=context)
+            elif update.message.text.strip() == "🌐 Portfólio DEV":
+                await update.message.reply_text(
+                    text=f"Obrigado pelo interesse!\n\nSegue abaixo o link do meu website, contendo um breve resumo de quem sou e dos projetos que já fiz, como dev!\n\nhttps://mathews.com.br/\n\nNo mais, é só chamar!",
+                    reply_to_message_id=update.message.id,
+                )
             else:
                 await update.message.reply_text(
                     text="Opção inválida - Tente Novamente.",
@@ -79,6 +87,9 @@ class Commands:
         keyboard_actions = [
             [
                 KeyboardButton(text="📝 Fazer proposta de site / bot / aplicativo"),
+            ],
+            [
+                KeyboardButton(text="🌐 Portfólio DEV"),
             ],
         ]
         reply_markup = ReplyKeyboardMarkup(
@@ -152,7 +163,7 @@ class Commands:
             if proposal:
                 await self.bot.bot.send_message(
                     chat_id=self.proposal_chat_id,
-                    text=f"""Nova proposta enviada!\n\nEstado da proposta: ✅ Confirmada!\n\nUsuário que enviou: @{proposal["user"]}\n\nProposta:\n\n{proposal["proposal"]}"""
+                    text=f"""Nova proposta enviada!\n\nEstado da proposta: ✅ Confirmada!\n\nUsuário que enviou: @{proposal["user"]}\n\nProposta:\n\n{proposal["proposal"]}""",
                 )
         elif update.message.text.strip() == "❌ Recusar":
             self.db.updateStatusOfProposal(proposal_id=proposal_id, isConfirmed=0)
@@ -169,7 +180,7 @@ class Commands:
             if proposal:
                 await self.bot.bot.send_message(
                     chat_id=self.proposal_chat_id,
-                    text=f"""Nova proposta enviada!\n\nEstado da proposta: ❌ Recusada!\n\nUsuário que enviou: @{proposal["user"]}\n\nProposta:\n\n{proposal["proposal"]}"""
+                    text=f"""Nova proposta enviada!\n\nEstado da proposta: ❌ Recusada!\n\nUsuário que enviou: @{proposal["user"]}\n\nProposta:\n\n{proposal["proposal"]}""",
                 )
         else:
             await update.message.reply_text(
