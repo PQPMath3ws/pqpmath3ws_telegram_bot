@@ -7,10 +7,6 @@ from telegram.ext import ApplicationBuilder
 bot = None
 db = None
 
-# print(f"pqpmath3ws_{datetime.now().strftime("%d/%m/%Y_%H:%M:%S")}")
-# ster = md5(string=f"pqpmath3ws_{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}".encode("utf-8"))
-# print(type(ster.hexdigest()))
-
 
 def init_database() -> None:
     global db
