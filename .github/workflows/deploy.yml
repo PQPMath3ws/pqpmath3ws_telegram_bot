@@ -1,0 +1,31 @@
+name: Deploy PQPMath3ws Telegram Bot
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Build Compose Containers
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy Project Direct to SSH Host
+        uses: appleboy/ssh-action@v0.1.9
+        env:
+          BOT_CLIENT_ID: ${{ secrets.BOT_CLIENT_ID }}
+          BOT_SECRET_KEY: ${{ secrets.BOT_SECRET_KEY }}
+          PROPOSALS_CHAT_ID: ${{ secrets.PROPOSALS_CHAT_ID }}
+        with:
+          host: ${{ secrets.REMOTE_DOCKER_HOST }}
+          username: ${{ secrets.REMOTE_DOCKER_USER }}
+          key: ${{ secrets.S_PRIVATE }}
+          passphrase: ${{ secrets.S_PASSPHRASE }}
+          envs: BOT_CLIENT_ID,BOT_SECRET_KEY,PROPOSALS_CHAT_ID
+          script: |
+            docker container stop pqpmath3ws-telegram-bot-app
+            docker container rm pqpmath3ws-telegram-bot-app
+            sudo rm -f -r pqpmath3ws_telegram_bot
+            git clone https://github.com/PQPMath3ws/pqpmath3ws_telegram_bot.git
+            cd pqpmath3ws_telegram_bot
+            docker-compose up --build --force-recreate -d
