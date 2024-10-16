@@ -1,8 +1,10 @@
 from database import Database
 from datetime import datetime
 from hashlib import md5
+from random import uniform
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import CallbackContext, CommandHandler, filters, MessageHandler
+from time import sleep
 
 
 class Commands:
@@ -63,11 +65,21 @@ class Commands:
             ):
                 await self.__startProposal(update=update, context=context)
             elif update.message.text.strip() == "🌐 Portfólio DEV":
+                await self.bot.bot.send_chat_action(
+                    chat_id=update.effective_chat.id, action="typing"
+                )
+                random_time = uniform(5.0, 9.0)
+                sleep(random_time)
                 await update.message.reply_text(
                     text=f"Obrigado pelo interesse!\n\nSegue abaixo o link do meu website, contendo um breve resumo de quem sou e dos projetos que já fiz, como dev!\n\nhttps://mathews.com.br/\n\nNo mais, é só chamar!",
                     reply_to_message_id=update.message.id,
                 )
             else:
+                await self.bot.bot.send_chat_action(
+                    chat_id=update.effective_chat.id, action="typing"
+                )
+                random_time = uniform(1.2, 2.0)
+                sleep(random_time)
                 await update.message.reply_text(
                     text="Opção inválida - Tente Novamente.",
                     reply_to_message_id=update.message.id,
@@ -95,6 +107,11 @@ class Commands:
         reply_markup = ReplyKeyboardMarkup(
             keyboard=keyboard_actions, one_time_keyboard=False, resize_keyboard=True
         )
+        await self.bot.bot.send_chat_action(
+            chat_id=update.effective_chat.id, action="typing"
+        )
+        random_time = uniform(5.0, 9.0)
+        sleep(random_time)
         await update.message.reply_text(
             text=f"Olá, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nFico feliz que tenha me contactado! 😁\n\nEm que posso ser útil no momento?",
             reply_to_message_id=update.message.id,
@@ -105,6 +122,11 @@ class Commands:
         )
 
     async def __startProposal(self, update: Update, context: CallbackContext) -> None:
+        await self.bot.bot.send_chat_action(
+            chat_id=update.effective_chat.id, action="typing"
+        )
+        random_time = uniform(3.0, 5.0)
+        sleep(random_time)
         await update.message.reply_text(
             text=self.proposal_message,
             reply_to_message_id=update.message.id,
@@ -136,6 +158,11 @@ class Commands:
             user_id=update.message.from_user.id,
             proposal=update.message.text,
         )
+        await self.bot.bot.send_chat_action(
+            chat_id=update.effective_chat.id, action="typing"
+        )
+        random_time = uniform(10.0, 15.0)
+        sleep(random_time)
         await update.message.reply_markdown_v2(
             text=f"```\n{update.message.text}\n```Deseja confirmar a sua proposta / ideia, para fazer um orçamento?",
             reply_markup=reply_markup,
@@ -150,6 +177,11 @@ class Commands:
     ) -> None:
         if update.message.text.strip() == "✅ Confirmar":
             self.db.updateStatusOfProposal(proposal_id=proposal_id, isConfirmed=1)
+            await self.bot.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action="typing"
+            )
+            random_time = uniform(5.0, 9.0)
+            sleep(random_time)
             await update.message.reply_text(
                 text=f"Boa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua proposta foi confirmada com sucesso!\n\nEm breve entrarei em contato para darmos continuidade a esse futuro projeto!\n\nObrigado pela preferência!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
                 reply_to_message_id=update.message.id,
@@ -167,6 +199,11 @@ class Commands:
                 )
         elif update.message.text.strip() == "❌ Recusar":
             self.db.updateStatusOfProposal(proposal_id=proposal_id, isConfirmed=0)
+            await self.bot.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action="typing"
+            )
+            random_time = uniform(5.0, 9.0)
+            sleep(random_time)
             await update.message.reply_text(
                 text=f"Ah, que pena {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua proposta foi cancelada com sucesso!\n\nEspero poder fazer negócio com você em breve!\n\nDe qualquer forma, obrigado pela preferência!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
                 reply_to_message_id=update.message.id,
@@ -183,6 +220,11 @@ class Commands:
                     text=f"""Nova proposta enviada!\n\nEstado da proposta: ❌ Recusada!\n\nUsuário que enviou: @{proposal["user"]}\n\nProposta:\n\n{proposal["proposal"]}""",
                 )
         else:
+            await self.bot.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action="typing"
+            )
+            random_time = uniform(1.2, 2.0)
+            sleep(random_time)
             await update.message.reply_text(
                 text="Opção inválida - Tente Novamente.",
                 reply_to_message_id=update.message.id,
