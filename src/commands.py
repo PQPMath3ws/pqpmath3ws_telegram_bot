@@ -1,10 +1,10 @@
+from asyncio import sleep
 from database import Database
 from datetime import datetime
 from hashlib import md5
 from random import uniform
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import CallbackContext, CommandHandler, filters, MessageHandler
-from time import sleep
 
 
 class Commands:
@@ -69,7 +69,7 @@ class Commands:
                     chat_id=update.effective_chat.id, action="typing"
                 )
                 random_time = uniform(5.0, 9.0)
-                sleep(random_time)
+                await sleep(random_time)
                 await update.message.reply_text(
                     text=f"Obrigado pelo interesse!\n\nSegue abaixo o link do meu website, contendo um breve resumo de quem sou e dos projetos que já fiz, como dev!\n\nhttps://mathews.com.br/\n\nNo mais, é só chamar!",
                     reply_to_message_id=update.message.id,
@@ -79,7 +79,7 @@ class Commands:
                     chat_id=update.effective_chat.id, action="typing"
                 )
                 random_time = uniform(1.2, 2.0)
-                sleep(random_time)
+                await sleep(random_time)
                 await update.message.reply_text(
                     text="Opção inválida - Tente Novamente.",
                     reply_to_message_id=update.message.id,
@@ -111,7 +111,7 @@ class Commands:
             chat_id=update.effective_chat.id, action="typing"
         )
         random_time = uniform(5.0, 9.0)
-        sleep(random_time)
+        await sleep(random_time)
         await update.message.reply_text(
             text=f"Olá, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nFico feliz que tenha me contactado! 😁\n\nEm que posso ser útil no momento?",
             reply_to_message_id=update.message.id,
@@ -126,7 +126,7 @@ class Commands:
             chat_id=update.effective_chat.id, action="typing"
         )
         random_time = uniform(3.0, 5.0)
-        sleep(random_time)
+        await sleep(random_time)
         await update.message.reply_text(
             text=self.proposal_message,
             reply_to_message_id=update.message.id,
@@ -162,7 +162,7 @@ class Commands:
             chat_id=update.effective_chat.id, action="typing"
         )
         random_time = uniform(10.0, 15.0)
-        sleep(random_time)
+        await sleep(random_time)
         await update.message.reply_markdown_v2(
             text=f"```\n{update.message.text}\n```Deseja confirmar a sua proposta / ideia, para fazer um orçamento?",
             reply_markup=reply_markup,
@@ -181,7 +181,7 @@ class Commands:
                 chat_id=update.effective_chat.id, action="typing"
             )
             random_time = uniform(5.0, 9.0)
-            sleep(random_time)
+            await sleep(random_time)
             await update.message.reply_text(
                 text=f"Boa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua proposta foi confirmada com sucesso!\n\nEm breve entrarei em contato para darmos continuidade a esse futuro projeto!\n\nObrigado pela preferência!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
                 reply_to_message_id=update.message.id,
@@ -203,7 +203,7 @@ class Commands:
                 chat_id=update.effective_chat.id, action="typing"
             )
             random_time = uniform(5.0, 9.0)
-            sleep(random_time)
+            await sleep(random_time)
             await update.message.reply_text(
                 text=f"Ah, que pena {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua proposta foi cancelada com sucesso!\n\nEspero poder fazer negócio com você em breve!\n\nDe qualquer forma, obrigado pela preferência!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
                 reply_to_message_id=update.message.id,
@@ -224,7 +224,7 @@ class Commands:
                 chat_id=update.effective_chat.id, action="typing"
             )
             random_time = uniform(1.2, 2.0)
-            sleep(random_time)
+            await sleep(random_time)
             await update.message.reply_text(
                 text="Opção inválida - Tente Novamente.",
                 reply_to_message_id=update.message.id,
