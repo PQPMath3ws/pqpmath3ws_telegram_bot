@@ -65,15 +65,9 @@ class Commands:
             ):
                 await self.__startProposal(update=update, context=context)
             elif update.message.text.strip() == "🌐 Portfólio DEV":
-                await self.bot.bot.send_chat_action(
-                    chat_id=update.effective_chat.id, action="typing"
-                )
-                random_time = uniform(5.0, 9.0)
-                await sleep(random_time)
-                await update.message.reply_text(
-                    text=f"Obrigado pelo interesse!\n\nSegue abaixo o link do meu website, contendo um breve resumo de quem sou e dos projetos que já fiz, como dev!\n\nhttps://mathews.com.br/\n\nNo mais, é só chamar!",
-                    reply_to_message_id=update.message.id,
-                )
+                await self.__portfolioDev(update=update, context=context)
+            elif update.message.text.strip() == "❓ Ajuda":
+                await self.__help(update=update, context=context)
             else:
                 await self.bot.bot.send_chat_action(
                     chat_id=update.effective_chat.id, action="typing"
@@ -102,6 +96,9 @@ class Commands:
             ],
             [
                 KeyboardButton(text="🌐 Portfólio DEV"),
+            ],
+            [
+                KeyboardButton(text="❓ Ajuda"),
             ],
         ]
         reply_markup = ReplyKeyboardMarkup(
@@ -230,8 +227,41 @@ class Commands:
                 reply_to_message_id=update.message.id,
             )
 
+    async def __portfolioDev(self, update: Update, context: CallbackContext) -> None:
+        await self.bot.bot.send_chat_action(
+            chat_id=update.effective_chat.id, action="typing"
+        )
+        random_time = uniform(5.0, 9.0)
+        await sleep(random_time)
+        await update.message.reply_text(
+            text=f"Obrigado pelo interesse!\n\nSegue abaixo o link do meu website, contendo um breve resumo de quem sou e dos projetos que já fiz, como dev!\n\nhttps://mathews.com.br/\n\nNo mais, é só chamar!",
+            reply_to_message_id=update.message.id,
+        )
+
+    async def __help(self, update: Update, context: CallbackContext) -> None:
+        available_commands: dict = {
+            "/start": "Inicializa o bot e mostra as opções disponíveis.",
+            "/portfolio": "Mostra uma mensagem a respeito de onde você pode encontrar informações sobre meu portfolio como dev.",
+            "/help": "Mostra a lista de comandos disponíveis para você utilizar ;)",
+        }
+        message: str = (
+            "Aqui está uma lista de comandos que estão disponíveis para utilizar comigo:"
+        )
+        for command in available_commands:
+            message += f"\n\n{command} - {available_commands[command]}"
+        await self.bot.bot.send_chat_action(
+            chat_id=update.effective_chat.id, action="typing"
+        )
+        random_time = uniform(6.0, 10.0)
+        await sleep(random_time)
+        await update.message.reply_text(
+            text=message, reply_to_message_id=update.message.id
+        )
+
     def apply_commands(self) -> None:
         self.bot.add_handler(handler=CommandHandler("start", self.__startChat))
+        self.bot.add_handler(handler=CommandHandler("portfolio", self.__portfolioDev))
+        self.bot.add_handler(handler=CommandHandler("help", self.__help))
         self.bot.add_handler(
             handler=MessageHandler(
                 filters.TEXT & ~filters.COMMAND, self.__handle_message
