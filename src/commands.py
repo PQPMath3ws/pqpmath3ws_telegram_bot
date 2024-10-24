@@ -64,6 +64,10 @@ class Commands:
                 == "📝 Fazer proposta de site / bot / aplicativo"
             ):
                 await self.__startProposal(update=update, context=context)
+            elif update.message.text.strip() == "📩 Assinar newsletter":
+                await self.__subscribeToNewsletter(update=update, context=context)
+            elif update.message.text.strip() == "🚫 Cancelar newsletter":
+                await self.__unsubscribeToNewsletter(update=update, context=context)
             elif update.message.text.strip() == "🌐 Portfólio DEV":
                 await self.__portfolioDev(update=update, context=context)
             elif update.message.text.strip() == "❓ Ajuda":
@@ -88,11 +92,23 @@ class Commands:
                     "waiting_confirm_proposal_message_", ""
                 ),
             )
+        elif current_user_state == "waiting_reply_subscribe_newsletter":
+            await self.__declineOrAcceptNewsletter(
+                update=update, context=context, isRegister=True
+            )
+        elif current_user_state == "waiting_reply_unsubscribe_newsletter":
+            await self.__declineOrAcceptNewsletter(
+                update=update, context=context, isRegister=False
+            )
 
     async def __startChat(self, update: Update, context: CallbackContext) -> None:
         keyboard_actions = [
             [
                 KeyboardButton(text="📝 Fazer proposta de site / bot / aplicativo"),
+            ],
+            [
+                KeyboardButton(text="📩 Assinar newsletter"),
+                KeyboardButton(text="🚫 Cancelar newsletter"),
             ],
             [
                 KeyboardButton(text="🌐 Portfólio DEV"),
@@ -227,6 +243,135 @@ class Commands:
                 reply_to_message_id=update.message.id,
             )
 
+    async def __subscribeToNewsletter(
+        self, update: Update, context: CallbackContext
+    ) -> None:
+        has_user = self.db.check_can_newsletter_user(
+            user_id=update.message.from_user.id
+        )
+        if has_user:
+            await self.bot.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action="typing"
+            )
+            random_time = uniform(5.0, 9.0)
+            await sleep(random_time)
+            await update.message.reply_text(
+                text=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n✅ Você já está inscrito para receber nossa newsletter!\n\nMuito obrigado! ❤️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                reply_to_message_id=update.message.id,
+            )
+        else:
+            keyboard_actions = [
+                [
+                    KeyboardButton(text="✅ Confirmar"),
+                    KeyboardButton(text="❌ Recusar"),
+                ],
+            ]
+            reply_markup = ReplyKeyboardMarkup(
+                keyboard=keyboard_actions, one_time_keyboard=False, resize_keyboard=True
+            )
+            await self.bot.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action="typing"
+            )
+            random_time = uniform(6.0, 10.0)
+            await sleep(random_time)
+            await update.message.reply_text(
+                text=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n❓ Deseja realmente assinar nossa newsletter? ❓",
+                reply_to_message_id=update.message.id,
+                reply_markup=reply_markup,
+            )
+            self.__checkAndUpdateUser(
+                update=update, user_state="waiting_reply_subscribe_newsletter"
+            )
+
+    async def __unsubscribeToNewsletter(
+        self, update: Update, context: CallbackContext
+    ) -> None:
+        has_user = self.db.check_can_newsletter_user(
+            user_id=update.message.from_user.id
+        )
+        if has_user:
+            keyboard_actions = [
+                [
+                    KeyboardButton(text="✅ Confirmar"),
+                    KeyboardButton(text="❌ Recusar"),
+                ],
+            ]
+            reply_markup = ReplyKeyboardMarkup(
+                keyboard=keyboard_actions, one_time_keyboard=False, resize_keyboard=True
+            )
+            await self.bot.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action="typing"
+            )
+            random_time = uniform(6.0, 10.0)
+            await sleep(random_time)
+            await update.message.reply_text(
+                text=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n❓ Deseja realmente cancelar nossa newsletter? 😢 ❓",
+                reply_to_message_id=update.message.id,
+                reply_markup=reply_markup,
+            )
+            self.__checkAndUpdateUser(
+                update=update, user_state="waiting_reply_unsubscribe_newsletter"
+            )
+        else:
+            await self.bot.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action="typing"
+            )
+            random_time = uniform(5.0, 9.0)
+            await sleep(random_time)
+            await update.message.reply_text(
+                text=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n❌ Você não está inscrito para receber nossa newsletter ainda!\n\nDe qualquer forma, muito obrigado! ❤️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                reply_to_message_id=update.message.id,
+            )
+
+    async def __declineOrAcceptNewsletter(
+        self, update: Update, context: CallbackContext, isRegister: bool
+    ) -> None:
+        if update.message.text.strip() == "✅ Confirmar":
+            await self.bot.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action="typing"
+            )
+            random_time = uniform(5.0, 9.0)
+            await sleep(random_time)
+            if isRegister:
+                await update.message.reply_text(
+                    text=f"Você foi incluído(a) na newsletter com sucesso! ☺️\n\nAgradeço fortemente pelo seu interesse! ❤️\n\n⭐️ Em breve, começo a trazer novidades para você! ⭐️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                    reply_to_message_id=update.message.id,
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+                self.db.register_user_to_newsletter(user_id=update.message.from_user.id)
+            else:
+                await update.message.reply_text(
+                    text=f"Você foi removido(a) da newsletter com sucesso! 😢\n\nA partir de agora, você não receberá mais novidades por aqui! 😪\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                    reply_to_message_id=update.message.id,
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+                self.db.unregister_user_to_newsletter(
+                    user_id=update.message.from_user.id
+                )
+            self.__checkAndUpdateUser(update=update, user_state="this_is_the_end")
+        elif update.message.text.strip() == "❌ Recusar":
+            await self.bot.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action="typing"
+            )
+            random_time = uniform(5.0, 9.0)
+            await sleep(random_time)
+            await update.message.reply_text(
+                text=f"Entendido, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua solicitação de {"assinar a newsletter" if isRegister else "sair da newsletter"} foi cancelada com sucesso!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                reply_to_message_id=update.message.id,
+                reply_markup=ReplyKeyboardRemove(),
+            )
+            self.__checkAndUpdateUser(update=update, user_state="this_is_the_end")
+        else:
+            await self.bot.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action="typing"
+            )
+            random_time = uniform(1.2, 2.0)
+            await sleep(random_time)
+            await update.message.reply_text(
+                text="Opção inválida - Tente Novamente.",
+                reply_to_message_id=update.message.id,
+            )
+
     async def __portfolioDev(self, update: Update, context: CallbackContext) -> None:
         await self.bot.bot.send_chat_action(
             chat_id=update.effective_chat.id, action="typing"
@@ -241,6 +386,8 @@ class Commands:
     async def __help(self, update: Update, context: CallbackContext) -> None:
         available_commands: dict = {
             "/start": "Inicializa o bot e mostra as opções disponíveis.",
+            "/subscribenewsletter": "Assina a newsletter de novidades do criador do bot",
+            "/unsubscribenewsletter": "Remove a assinatura da newsletter de novidades do criador do bot",
             "/portfolio": "Mostra uma mensagem a respeito de onde você pode encontrar informações sobre meu portfolio como dev.",
             "/help": "Mostra a lista de comandos disponíveis para você utilizar ;)",
         }
@@ -260,6 +407,14 @@ class Commands:
 
     def apply_commands(self) -> None:
         self.bot.add_handler(handler=CommandHandler("start", self.__startChat))
+        self.bot.add_handler(
+            handler=CommandHandler("subscribenewsletter", self.__subscribeToNewsletter)
+        )
+        self.bot.add_handler(
+            handler=CommandHandler(
+                "unsubscribenewsletter", self.__unsubscribeToNewsletter
+            )
+        )
         self.bot.add_handler(handler=CommandHandler("portfolio", self.__portfolioDev))
         self.bot.add_handler(handler=CommandHandler("help", self.__help))
         self.bot.add_handler(

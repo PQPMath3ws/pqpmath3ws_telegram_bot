@@ -18,6 +18,9 @@ class Database:
         con.cursor().execute(
             """CREATE TABLE IF NOT EXISTS "users_proposals" (id TEXT NOT NULL PRIMARY KEY UNIQUE, user_id BIGINT NOT NULL, proposal TEXT NOT NULL, isConfirmed TINYINT, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL, updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL, FOREIGN KEY(user_id) REFERENCES users(user_id));"""
         )
+        con.cursor().execute(
+            """CREATE TABLE IF NOT EXISTS "users_newsletter" (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, user_id BIGINT NOT NULL, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL, FOREIGN KEY(user_id) REFERENCES users(user_id));"""
+        )
 
     def initDatabase(self) -> Connection:
         global con
@@ -117,3 +120,29 @@ class Database:
                 return None
         else:
             return None
+    
+    def check_can_newsletter_user(self, user_id: int) -> bool:
+        global con
+        result = (
+            con.cursor()
+            .execute(f"""SELECT * FROM "users_newsletter" WHERE "user_id" = {user_id} LIMIT 1;""")
+            .fetchone()
+        )
+        if result:
+            return True
+        else:
+            return False
+    
+    def register_user_to_newsletter(self, user_id: int) -> None:
+        global con
+        con.cursor().execute(
+            f"""INSERT INTO "users_newsletter" ("user_id") VALUES ({user_id});"""
+        )
+        con.commit()
+    
+    def unregister_user_to_newsletter(self, user_id: int) -> None:
+        global con
+        con.cursor().execute(
+            f"""DELETE FROM "users_newsletter" WHERE "user_id" = {user_id};"""
+        )
+        con.commit()
