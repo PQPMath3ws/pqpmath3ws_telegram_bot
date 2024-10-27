@@ -386,9 +386,9 @@ class Commands:
     async def __help(self, update: Update, context: CallbackContext) -> None:
         available_commands: dict = {
             "/start": "Inicializa o bot e mostra as opções disponíveis.",
-            "/subscribenewsletter": "Assina a newsletter de novidades do criador do bot",
-            "/unsubscribenewsletter": "Remove a assinatura da newsletter de novidades do criador do bot",
-            "/portfolio": "Mostra uma mensagem a respeito de onde você pode encontrar informações sobre meu portfolio como dev.",
+            "/subscribenewsletter": "Assina a newsletter de novidades do criador do bot.",
+            "/unsubscribenewsletter": "Remove a assinatura da newsletter de novidades do criador do bot.",
+            "/portfolio": "Mostra uma mensagem a respeito de onde você pode encontrar informações sobre o portfolio do criador do bot como dev.",
             "/help": "Mostra a lista de comandos disponíveis para você utilizar ;)",
         }
         message: str = (
