@@ -26,6 +26,4 @@ jobs:
             sudo rm -f -r pqpmath3ws_telegram_bot
             git clone https://github.com/PQPMath3ws/pqpmath3ws_telegram_bot.git
             cd pqpmath3ws_telegram_bot
-            docker cp src/ pqpmath3ws-telegram-bot-app:/usr/src/app
-            docker container stop pqpmath3ws-telegram-bot-app
-            docker container start pqpmath3ws-telegram-bot-app
+            docker ps -a -q -f name=pqpmath3ws-telegram-bot-app && { docker cp src/ pqpmath3ws-telegram-bot-app:/usr/src/app; docker-compose up --build --force-recreate -d; } || { docker-compose up -d; }
