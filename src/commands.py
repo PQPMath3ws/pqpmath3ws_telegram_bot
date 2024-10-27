@@ -3,14 +3,27 @@ from database import Database
 from datetime import datetime
 from hashlib import md5
 from random import uniform
-from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
-from telegram.ext import CallbackContext, CommandHandler, filters, MessageHandler
+from telegram import (
+    ChatMember,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    Update,
+)
+from telegram.ext import (
+    CallbackContext,
+    ChatMemberHandler,
+    CommandHandler,
+    filters,
+    MessageHandler,
+)
 
 
 class Commands:
     proposal_message: str = (
         "Por favor, descreva abaixo, com detalhes sobre sua proposta de site, bot, ou aplicativo que tem em mente, para desenvolver. "
     )
+    invalid_command_message: str = "Opção inválida."
 
     def __init__(self, bot, db: Database, proposal_chat_id: int) -> None:
         self.bot = bot
@@ -24,10 +37,10 @@ class Commands:
             self.db.create_user(
                 user_id=update.message.from_user.id,
                 username=update.message.from_user.username,
-                chat_id=update.message.chat_id,
+                chat_id=update.effective_chat.id,
             )
             self.users_states[update.message.from_user.id] = {
-                "chat_id": update.message.chat_id,
+                "chat_id": update.effective_chat.id,
                 "username": update.message.from_user.username,
                 "user_state": user_state,
             }
@@ -35,11 +48,11 @@ class Commands:
             self.db.update_user(
                 user_id=update.message.from_user.id,
                 username=update.message.from_user.username,
-                chat_id=update.message.chat_id,
+                chat_id=update.effective_chat.id,
                 user_state=user_state,
             )
             self.users_states[update.message.from_user.id] = {
-                "chat_id": update.message.chat_id,
+                "chat_id": update.effective_chat.id,
                 "username": update.message.from_user.username,
                 "user_state": user_state,
             }
@@ -79,7 +92,7 @@ class Commands:
                 random_time = uniform(1.2, 2.0)
                 await sleep(random_time)
                 await update.message.reply_text(
-                    text="Opção inválida - Tente Novamente.",
+                    text=self.invalid_command_message,
                     reply_to_message_id=update.message.id,
                 )
         elif current_user_state == "waiting_reply_proposal_message":
@@ -99,6 +112,25 @@ class Commands:
         elif current_user_state == "waiting_reply_unsubscribe_newsletter":
             await self.__declineOrAcceptNewsletter(
                 update=update, context=context, isRegister=False
+            )
+
+    async def __enteringOnChat(self, update: Update, context: CallbackContext) -> None:
+        if update.my_chat_member.new_chat_member.status == ChatMember.MEMBER:
+            if update.effective_chat.id != self.proposal_chat_id:
+                await self.bot.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text="Esse bot não pode ser adicionado em grupos - Saindo...",
+                )
+                await update.effective_chat.leave()
+            else:
+                await self.bot.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text="Agora, para obter a total funcionalidade desse bot, coloque-me como administrador do grupo, para que eu consiga interagir por aqui também ;)",
+                )
+        elif update.my_chat_member.new_chat_member.status == ChatMember.ADMINISTRATOR:
+            await self.bot.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Tudo configurado de forma correta agora - Bom proveito ;)",
             )
 
     async def __startChat(self, update: Update, context: CallbackContext) -> None:
@@ -239,7 +271,7 @@ class Commands:
             random_time = uniform(1.2, 2.0)
             await sleep(random_time)
             await update.message.reply_text(
-                text="Opção inválida - Tente Novamente.",
+                text=self.invalid_command_message,
                 reply_to_message_id=update.message.id,
             )
 
@@ -368,7 +400,7 @@ class Commands:
             random_time = uniform(1.2, 2.0)
             await sleep(random_time)
             await update.message.reply_text(
-                text="Opção inválida - Tente Novamente.",
+                text=self.invalid_command_message,
                 reply_to_message_id=update.message.id,
             )
 
@@ -420,5 +452,10 @@ class Commands:
         self.bot.add_handler(
             handler=MessageHandler(
                 filters.TEXT & ~filters.COMMAND, self.__handle_message
+            )
+        )
+        self.bot.add_handler(
+            handler=ChatMemberHandler(
+                self.__enteringOnChat, ChatMemberHandler.MY_CHAT_MEMBER
             )
         )
