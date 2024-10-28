@@ -11,12 +11,17 @@ from telegram import (
     Update,
 )
 from telegram.ext import (
+    Application,
     CallbackContext,
     ChatMemberHandler,
     CommandHandler,
+    ContextTypes,
+    ExtBot,
     filters,
+    JobQueue,
     MessageHandler,
 )
+from typing import Any, Dict
 
 
 class Commands:
@@ -25,7 +30,19 @@ class Commands:
     )
     invalid_command_message: str = "Opção inválida."
 
-    def __init__(self, bot, db: Database, proposal_chat_id: int) -> None:
+    def __init__(
+        self,
+        bot: Application[
+            ExtBot[None],
+            ContextTypes.DEFAULT_TYPE,
+            Dict[Any, Any],
+            Dict[Any, Any],
+            Dict[Any, Any],
+            JobQueue[ContextTypes.DEFAULT_TYPE],
+        ],
+        db: Database,
+        proposal_chat_id: int,
+    ) -> None:
         self.bot = bot
         self.db = db
         self.users_states = db.get_users_states()
@@ -128,10 +145,19 @@ class Commands:
                     text="Agora, para obter a total funcionalidade desse bot, coloque-me como administrador do grupo, para que eu consiga interagir por aqui também ;)",
                 )
         elif update.my_chat_member.new_chat_member.status == ChatMember.ADMINISTRATOR:
-            await self.bot.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text="Tudo configurado de forma correta agora - Bom proveito ;)",
+            bot_member = await context.bot.get_chat_member(
+                update.effective_chat.id, context.bot.id
             )
+            if bot_member.can_read_all_group_messages:
+                await self.bot.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text="Tudo configurado de forma correta agora - Bom proveito ;)",
+                )
+            else:
+                await self.bot.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text="Opa - Ainda não tenho a permissão para ler as mensagens do grupo - Permita-a, para que assim, tudo funcione corretamente ;)",
+                )
 
     async def __startChat(self, update: Update, context: CallbackContext) -> None:
         keyboard_actions = [
