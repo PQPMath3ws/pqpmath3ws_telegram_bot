@@ -148,19 +148,10 @@ class Commands:
                     text="Agora, para obter a total funcionalidade desse bot, coloque-me como administrador do grupo, para que eu consiga interagir por aqui também ;)",
                 )
         elif update.my_chat_member.new_chat_member.status == ChatMember.ADMINISTRATOR:
-            bot_member = await context.bot.get_chat_member(
-                chat_id=update.effective_chat.id, user_id=context.bot.id
+            await self.bot.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Tudo configurado de forma correta agora - Bom proveito ;)",
             )
-            if bot_member.can_send_messages:
-                await self.bot.bot.send_message(
-                    chat_id=update.effective_chat.id,
-                    text="Tudo configurado de forma correta agora - Bom proveito ;)",
-                )
-            else:
-                await self.bot.bot.send_message(
-                    chat_id=update.effective_chat.id,
-                    text="Opa - Ainda não tenho a permissão para ler as mensagens do grupo - Permita-a, para que assim, tudo funcione corretamente ;)",
-                )
 
     async def __startChat(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
