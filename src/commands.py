@@ -12,7 +12,6 @@ from telegram import (
 )
 from telegram.ext import (
     Application,
-    CallbackContext,
     ChatMemberHandler,
     CommandHandler,
     ContextTypes,
@@ -74,7 +73,9 @@ class Commands:
                 "user_state": user_state,
             }
 
-    async def __handle_message(self, update: Update, context: CallbackContext) -> None:
+    async def __handle_message(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         self.__checkAndUpdateUser(
             update=update,
             user_state=(
@@ -131,7 +132,9 @@ class Commands:
                 update=update, context=context, isRegister=False
             )
 
-    async def __enteringOnChat(self, update: Update, context: CallbackContext) -> None:
+    async def __enteringOnChat(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         if update.my_chat_member.new_chat_member.status == ChatMember.MEMBER:
             if update.effective_chat.id != self.proposal_chat_id:
                 await self.bot.bot.send_message(
@@ -146,7 +149,7 @@ class Commands:
                 )
         elif update.my_chat_member.new_chat_member.status == ChatMember.ADMINISTRATOR:
             bot_member = await context.bot.get_chat_member(
-                update.effective_chat.id, context.bot.id
+                chat_id=update.effective_chat.id, user_id=context.bot.id
             )
             if bot_member.can_read_all_group_messages:
                 await self.bot.bot.send_message(
@@ -159,7 +162,9 @@ class Commands:
                     text="Opa - Ainda não tenho a permissão para ler as mensagens do grupo - Permita-a, para que assim, tudo funcione corretamente ;)",
                 )
 
-    async def __startChat(self, update: Update, context: CallbackContext) -> None:
+    async def __startChat(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         keyboard_actions = [
             [
                 KeyboardButton(text="📝 Fazer proposta de site / bot / aplicativo"),
@@ -192,7 +197,9 @@ class Commands:
             update=update, user_state="waiting_reply_welcome_message"
         )
 
-    async def __startProposal(self, update: Update, context: CallbackContext) -> None:
+    async def __startProposal(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         await self.bot.bot.send_chat_action(
             chat_id=update.effective_chat.id, action="typing"
         )
@@ -208,7 +215,7 @@ class Commands:
         )
 
     async def __waitingForProposalConfirmation(
-        self, update: Update, context: CallbackContext
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
         proposal_hash: str = md5(
             string=f"{update.message.from_user.username}_{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}".encode(
@@ -244,7 +251,7 @@ class Commands:
         )
 
     async def __declineOrAcceptTheProposal(
-        self, update: Update, context: CallbackContext, proposal_id: str
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE, proposal_id: str
     ) -> None:
         if update.message.text.strip() == "✅ Confirmar":
             self.db.updateStatusOfProposal(proposal_id=proposal_id, isConfirmed=1)
@@ -302,7 +309,7 @@ class Commands:
             )
 
     async def __subscribeToNewsletter(
-        self, update: Update, context: CallbackContext
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
         has_user = self.db.check_can_newsletter_user(
             user_id=update.message.from_user.id
@@ -342,7 +349,7 @@ class Commands:
             )
 
     async def __unsubscribeToNewsletter(
-        self, update: Update, context: CallbackContext
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
         has_user = self.db.check_can_newsletter_user(
             user_id=update.message.from_user.id
@@ -382,7 +389,7 @@ class Commands:
             )
 
     async def __declineOrAcceptNewsletter(
-        self, update: Update, context: CallbackContext, isRegister: bool
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE, isRegister: bool
     ) -> None:
         if update.message.text.strip() == "✅ Confirmar":
             await self.bot.bot.send_chat_action(
@@ -430,7 +437,9 @@ class Commands:
                 reply_to_message_id=update.message.id,
             )
 
-    async def __portfolioDev(self, update: Update, context: CallbackContext) -> None:
+    async def __portfolioDev(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         await self.bot.bot.send_chat_action(
             chat_id=update.effective_chat.id, action="typing"
         )
@@ -441,7 +450,7 @@ class Commands:
             reply_to_message_id=update.message.id,
         )
 
-    async def __help(self, update: Update, context: CallbackContext) -> None:
+    async def __help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         available_commands: dict = {
             "/start": "Inicializa o bot e mostra as opções disponíveis.",
             "/subscribenewsletter": "Assina a newsletter de novidades do criador do bot.",
