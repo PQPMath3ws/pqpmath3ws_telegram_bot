@@ -151,7 +151,7 @@ class Commands:
             bot_member = await context.bot.get_chat_member(
                 chat_id=update.effective_chat.id, user_id=context.bot.id
             )
-            if bot_member.can_read_all_group_messages:
+            if bot_member.can_send_messages:
                 await self.bot.bot.send_message(
                     chat_id=update.effective_chat.id,
                     text="Tudo configurado de forma correta agora - Bom proveito ;)",
