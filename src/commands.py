@@ -41,11 +41,13 @@ class Commands:
         ],
         db: Database,
         proposal_chat_id: int,
+        owner_user_id: int,
     ) -> None:
         self.bot = bot
         self.db = db
         self.users_states = db.get_users_states()
         self.proposal_chat_id = proposal_chat_id
+        self.owner_user_id = owner_user_id
 
     def __checkAndUpdateUser(self, update: Update, user_state: str) -> None:
         has_user = self.db.check_user_exists(user_id=update.message.from_user.id)
@@ -444,8 +446,8 @@ class Commands:
     async def __help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         available_commands: dict = {
             "/start": "Inicializa o bot e mostra as opções disponíveis.",
-            "/subscribenewsletter": "Assina a newsletter de novidades do criador do bot.",
-            "/unsubscribenewsletter": "Remove a assinatura da newsletter de novidades do criador do bot.",
+            "/subscribenewsletter": "Assina a newsletter de novidades do ADM do bot.",
+            "/unsubscribenewsletter": "Remove a assinatura da newsletter de novidades do ADM do bot.",
             "/portfolio": "Mostra uma mensagem a respeito de onde você pode encontrar informações sobre o portfolio do criador do bot como dev.",
             "/help": "Mostra a lista de comandos disponíveis para você utilizar ;)",
         }

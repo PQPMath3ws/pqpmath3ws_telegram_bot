@@ -25,11 +25,14 @@ Crie um arquivo ```.env``` e preencha as variáveis vazias no arquivo:
 BOT_CLIENT_ID=
 BOT_SECRET_KEY=
 PROPOSALS_CHAT_ID=
+OWNER_USER_ID=
 ```
 
 > OBS 1: É necessário obter o id do telegram de um grupo para usar na variável de PROPOSALS_CHAT_ID. Existem bots no próprio **telegram** que conseguem obter essa informação para você.
 
-> OBS 2: Não é necessário executar o bot em um ambiente Docker localmente. Serve mais para realizar o  deploy em uma VPS privada / servidor remoto.
+> OBS 2: É necessário obter o id da conta do telegram para usar na variável de OWNER_USER_ID. Existem bots no próprio **telegram** que conseguem obter essa informação para você.
+
+> OBS 3: Não é necessário executar o bot em um ambiente Docker localmente. Serve mais para realizar o  deploy em uma VPS privada / servidor remoto.
 
 **VOALÁ!** - O projeto já está sendo executado na sua máquina!
 
@@ -39,13 +42,13 @@ PROPOSALS_CHAT_ID=
 
 Abaixo segue uma lista dos comandos disponíveis do bot até o exato momento:
 
-|Comando|Descrição|
-|:-------------:|:---------------------------------------:|
-| start | Inicializa o bot e mostra as opções disponíveis. |
-| subscribenewsletter | Assina a newsletter de novidades do criador do bot. |
-| unsubscribenewsletter | Remove a assinatura da newsletter de novidades do criador do bot. |
-| portfolio | Mostra uma mensagem a respeito de onde você pode encontrar informações sobre o portfolio do criador do bot como dev. |
-| help | Mostra a lista de comandos disponíveis para você utilizar ;) |
+|Comando|Público?|Descrição|
+|:-------------:|:-------:|:------------------------------------:|
+| start | Sim | Inicializa o bot e mostra as opções disponíveis. |
+| subscribenewsletter | Sim | Assina a newsletter de novidades do criador do bot. |
+| unsubscribenewsletter | Sim | Remove a assinatura da newsletter de novidades do criador do bot. |
+| portfolio | Sim | Mostra uma mensagem a respeito de onde você pode encontrar informações sobre o portfolio do criador do bot como dev. |
+| help | Sim | Mostra a lista de comandos disponíveis para você utilizar ;) |
 
 <br>
 
@@ -69,6 +72,7 @@ As variáveis necessárias são:
 BOT_CLIENT_ID (correspondente ao ID do seu bot do telegram - é a parte antes dos dois pontos ":")
 BOT_SECRET_KEY (correspondente ao token/secret_key do seu bot do telegram - é a parte depois dos dois pontos ":")
 PROPOSALS_CHAT_ID (correspondente ao ID do grupo onde você receberá as propostas enviadas por outros usuários)
+OWNER_USER_ID (correspondente ao ID do usuário que será o ADM do bot, em questão)
 REMOTE_DOCKER_HOST (correspondente ao endereço/ip do host remoto para acesso via SSH)
 REMOTE_DOCKER_USER (correspondente ao usuário do host remoto para acesso via SSH)
 S_PASSPHRASE (correspondente a passphrase/senha da sua chave SSH para acesso ao host remoto)

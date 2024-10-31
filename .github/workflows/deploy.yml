@@ -16,12 +16,13 @@ jobs:
           BOT_CLIENT_ID: ${{ secrets.BOT_CLIENT_ID }}
           BOT_SECRET_KEY: ${{ secrets.BOT_SECRET_KEY }}
           PROPOSALS_CHAT_ID: ${{ secrets.PROPOSALS_CHAT_ID }}
+          OWNER_USER_ID: ${{ secrets.OWNER_USER_ID }}
         with:
           host: ${{ secrets.REMOTE_DOCKER_HOST }}
           username: ${{ secrets.REMOTE_DOCKER_USER }}
           key: ${{ secrets.S_PRIVATE }}
           passphrase: ${{ secrets.S_PASSPHRASE }}
-          envs: BOT_CLIENT_ID,BOT_SECRET_KEY,PROPOSALS_CHAT_ID
+          envs: BOT_CLIENT_ID,BOT_SECRET_KEY,PROPOSALS_CHAT_ID,OWNER_USER_ID
           script: |
             sudo rm -f -r pqpmath3ws_telegram_bot
             git clone https://github.com/PQPMath3ws/pqpmath3ws_telegram_bot.git
