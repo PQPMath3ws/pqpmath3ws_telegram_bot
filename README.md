@@ -47,6 +47,7 @@ Abaixo segue uma lista dos comandos disponíveis do bot até o exato momento:
 | start | Sim | Inicializa o bot e mostra as opções disponíveis. |
 | subscribenewsletter | Sim | Assina a newsletter de novidades do criador do bot. |
 | unsubscribenewsletter | Sim | Remove a assinatura da newsletter de novidades do criador do bot. |
+| listsubscribers | Não | Mostra uma lista (se tiver) de usuários inscritos na newsletter do ADM do bot. |
 | portfolio | Sim | Mostra uma mensagem a respeito de onde você pode encontrar informações sobre o portfolio do criador do bot como dev. |
 | help | Sim | Mostra a lista de comandos disponíveis para você utilizar ;) |
 

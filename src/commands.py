@@ -28,6 +28,7 @@ class Commands:
         "Por favor, descreva abaixo, com detalhes sobre sua proposta de site, bot, ou aplicativo que tem em mente, para desenvolver. "
     )
     invalid_command_message: str = "Opção inválida."
+    subscribers_list_initial_message: str = "Aqui vai uma lista do(s) user(s) que estão inscritos na newsletter:"
 
     def __init__(
         self,
@@ -430,6 +431,39 @@ class Commands:
                 reply_to_message_id=update.message.id,
             )
 
+    async def __listAllSubscribers(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        if (
+            update.effective_chat.id == self.owner_user_id
+            or update.effective_chat.id == self.proposal_chat_id
+        ):
+            subscribers = self.db.getAllSubscribers()
+            if subscribers:
+                message = self.subscribers_list_initial_message
+                for index in range(len(subscribers)):
+                    message += f"\n\n{index + 1} - ✅ @{subscribers[index][0]}"
+                message += "\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!"
+                await self.bot.bot.send_chat_action(
+                    chat_id=update.effective_chat.id, action="typing"
+                )
+                random_time = uniform(5.0, 9.0)
+                await sleep(random_time)
+                await update.message.reply_text(
+                    text=message,
+                    reply_to_message_id=update.message.id,
+                )
+            else:
+                await self.bot.bot.send_chat_action(
+                    chat_id=update.effective_chat.id, action="typing"
+                )
+                random_time = uniform(3.0, 5.0)
+                await sleep(random_time)
+                await update.message.reply_text(
+                    text="❌ Ainda não possuem inscritos na newsletter - Lamento :'(\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                    reply_to_message_id=update.message.id,
+                )
+
     async def __portfolioDev(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
@@ -448,6 +482,14 @@ class Commands:
             "/start": "Inicializa o bot e mostra as opções disponíveis.",
             "/subscribenewsletter": "Assina a newsletter de novidades do ADM do bot.",
             "/unsubscribenewsletter": "Remove a assinatura da newsletter de novidades do ADM do bot.",
+            **(
+                {
+                    "/listsubscribers": "Mostra uma lista (se tiver) de usuários inscritos na newsletter do ADM do bot.",
+                }
+                if update.effective_chat.id == self.owner_user_id
+                or update.effective_chat.id == self.proposal_chat_id
+                else {}
+            ),
             "/portfolio": "Mostra uma mensagem a respeito de onde você pode encontrar informações sobre o portfolio do criador do bot como dev.",
             "/help": "Mostra a lista de comandos disponíveis para você utilizar ;)",
         }
@@ -474,6 +516,9 @@ class Commands:
             handler=CommandHandler(
                 "unsubscribenewsletter", self.__unsubscribeToNewsletter
             )
+        )
+        self.bot.add_handler(
+            handler=CommandHandler("listsubscribers", self.__listAllSubscribers)
         )
         self.bot.add_handler(handler=CommandHandler("portfolio", self.__portfolioDev))
         self.bot.add_handler(handler=CommandHandler("help", self.__help))

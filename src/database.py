@@ -120,29 +120,45 @@ class Database:
                 return None
         else:
             return None
-    
+
     def check_can_newsletter_user(self, user_id: int) -> bool:
         global con
         result = (
             con.cursor()
-            .execute(f"""SELECT * FROM "users_newsletter" WHERE "user_id" = {user_id} LIMIT 1;""")
+            .execute(
+                f"""SELECT * FROM "users_newsletter" WHERE "user_id" = {user_id} LIMIT 1;"""
+            )
             .fetchone()
         )
         if result:
             return True
         else:
             return False
-    
+
     def register_user_to_newsletter(self, user_id: int) -> None:
         global con
         con.cursor().execute(
             f"""INSERT INTO "users_newsletter" ("user_id") VALUES ({user_id});"""
         )
         con.commit()
-    
+
     def unregister_user_to_newsletter(self, user_id: int) -> None:
         global con
         con.cursor().execute(
             f"""DELETE FROM "users_newsletter" WHERE "user_id" = {user_id};"""
         )
         con.commit()
+
+    def getAllSubscribers(self):
+        global con
+        result = (
+            con.cursor()
+            .execute(
+                """SELECT "users_states"."username" FROM "users_states" INNER JOIN "users_newsletter" ON "users_newsletter"."user_id" = "users_states"."user_id";"""
+            )
+            .fetchall()
+        )
+        if len(result) > 0:
+            return result
+        else:
+            return None
