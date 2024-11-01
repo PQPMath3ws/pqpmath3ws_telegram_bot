@@ -80,13 +80,13 @@ class Database:
         result = (
             con.cursor()
             .execute(
-                f"""SELECT "id" FROM "users_states" WHERE "user_id" = {user_id} AND "chat_id" = {user_id} LIMIT 1;"""
+                f"""SELECT "id" FROM "users_states" WHERE "user_id" = {user_id} AND "chat_id" = {chat_id} LIMIT 1;"""
             )
             .fetchone()
         )
         if result:
             con.cursor().execute(
-                f"""UPDATE "users_states" SET "chat_id" = {chat_id}, "username" = "{username}", "user_state" = "{user_state}", updatedAt = CURRENT_TIMESTAMP WHERE "user_id" = {user_id} AND "chat_id" = {user_id};"""
+                f"""UPDATE "users_states" SET "chat_id" = {chat_id}, "username" = "{username}", "user_state" = "{user_state}", updatedAt = CURRENT_TIMESTAMP WHERE "user_id" = {user_id} AND "chat_id" = {chat_id};"""
             )
         else:
             con.cursor().execute(
