@@ -354,7 +354,7 @@ class Commands:
                 context=context,
                 initial_range=6.0,
                 final_range=10.0,
-                message=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n❓ Deseja realmente assinar nossa newsletter? ❓",
+                message=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nDeseja realmente assinar nossa newsletter?",
                 reply_markup=reply_markup,
             )
             if status_send_message:

@@ -41,7 +41,7 @@ class Database:
         states = {}
         if len(result) > 0:
             for user in result:
-                states[user[1]] = {
+                states[user[2]] = {
                     "chat_id": user[2],
                     "username": user[3],
                     "user_state": user[4],
