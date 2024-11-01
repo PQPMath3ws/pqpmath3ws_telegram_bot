@@ -10,6 +10,7 @@ from telegram import (
     ReplyKeyboardRemove,
     Update,
 )
+from telegram.error import Forbidden
 from telegram.ext import (
     Application,
     ChatMemberHandler,
@@ -28,7 +29,9 @@ class Commands:
         "Por favor, descreva abaixo, com detalhes sobre sua proposta de site, bot, ou aplicativo que tem em mente, para desenvolver. "
     )
     invalid_command_message: str = "Opção inválida."
-    subscribers_list_initial_message: str = "Aqui vai uma lista do(s) user(s) que estão inscritos na newsletter:"
+    subscribers_list_initial_message: str = (
+        "Aqui vai uma lista do(s) user(s) que estão inscritos na newsletter:"
+    )
 
     def __init__(
         self,
@@ -50,6 +53,31 @@ class Commands:
         self.proposal_chat_id = proposal_chat_id
         self.owner_user_id = owner_user_id
 
+    async def __sendMessage(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        initial_range: float,
+        final_range: float,
+        message: str,
+        reply_markup: Any,
+    ) -> bool:
+        try:
+            await self.bot.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action="typing"
+            )
+            random_time = uniform(initial_range, final_range)
+            await sleep(random_time)
+            await update.message.reply_text(
+                text=message,
+                reply_to_message_id=update.message.id,
+                reply_markup=reply_markup if reply_markup else None,
+            )
+            return True
+        except Forbidden:
+            self.db.insertUserBloquedBot(user_id=update.effective_message.from_user.id)
+            return False
+
     def __checkAndUpdateUser(self, update: Update, user_state: str) -> None:
         has_user = self.db.check_user_exists(user_id=update.message.from_user.id)
         if not has_user:
@@ -58,7 +86,7 @@ class Commands:
                 username=update.message.from_user.username,
                 chat_id=update.effective_chat.id,
             )
-            self.users_states[update.message.from_user.id] = {
+            self.users_states[update.effective_chat.id] = {
                 "chat_id": update.effective_chat.id,
                 "username": update.message.from_user.username,
                 "user_state": user_state,
@@ -70,7 +98,7 @@ class Commands:
                 chat_id=update.effective_chat.id,
                 user_state=user_state,
             )
-            self.users_states[update.message.from_user.id] = {
+            self.users_states[update.effective_chat.id] = {
                 "chat_id": update.effective_chat.id,
                 "username": update.message.from_user.username,
                 "user_state": user_state,
@@ -82,12 +110,12 @@ class Commands:
         self.__checkAndUpdateUser(
             update=update,
             user_state=(
-                self.users_states[update.message.from_user.id]["user_state"]
+                self.users_states[update.effective_chat.id]["user_state"]
                 if update.message.from_user.id in self.users_states
                 else "welcome_message"
             ),
         )
-        current_user_state: str = self.users_states[update.message.from_user.id][
+        current_user_state: str = self.users_states[update.effective_chat.id][
             "user_state"
         ]
         if current_user_state == "welcome_message":
@@ -107,14 +135,13 @@ class Commands:
             elif update.message.text.strip() == "❓ Ajuda":
                 await self.__help(update=update, context=context)
             else:
-                await self.bot.bot.send_chat_action(
-                    chat_id=update.effective_chat.id, action="typing"
-                )
-                random_time = uniform(1.2, 2.0)
-                await sleep(random_time)
-                await update.message.reply_text(
-                    text=self.invalid_command_message,
-                    reply_to_message_id=update.message.id,
+                await self.__sendMessage(
+                    update=update,
+                    context=context,
+                    initial_range=1.2,
+                    final_range=2.0,
+                    message=self.invalid_command_message,
+                    reply_markup=None,
                 )
         elif current_user_state == "waiting_reply_proposal_message":
             await self.__waitingForProposalConfirmation(update=update, context=context)
@@ -177,36 +204,34 @@ class Commands:
         reply_markup = ReplyKeyboardMarkup(
             keyboard=keyboard_actions, one_time_keyboard=False, resize_keyboard=True
         )
-        await self.bot.bot.send_chat_action(
-            chat_id=update.effective_chat.id, action="typing"
-        )
-        random_time = uniform(5.0, 9.0)
-        await sleep(random_time)
-        await update.message.reply_text(
-            text=f"Olá, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nFico feliz que tenha me contactado! 😁\n\nEm que posso ser útil no momento?",
-            reply_to_message_id=update.message.id,
+        status_send_message: bool = await self.__sendMessage(
+            update=update,
+            context=context,
+            initial_range=5.0,
+            final_range=9.0,
+            message=f"Olá, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nFico feliz que tenha me contactado! 😁\n\nEm que posso ser útil no momento?",
             reply_markup=reply_markup,
         )
-        self.__checkAndUpdateUser(
-            update=update, user_state="waiting_reply_welcome_message"
-        )
+        if status_send_message:
+            self.__checkAndUpdateUser(
+                update=update, user_state="waiting_reply_welcome_message"
+            )
 
     async def __startProposal(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
-        await self.bot.bot.send_chat_action(
-            chat_id=update.effective_chat.id, action="typing"
-        )
-        random_time = uniform(3.0, 5.0)
-        await sleep(random_time)
-        await update.message.reply_text(
-            text=self.proposal_message,
-            reply_to_message_id=update.message.id,
+        status_send_message: bool = await self.__sendMessage(
+            update=update,
+            context=context,
+            initial_range=3.0,
+            final_range=5.0,
+            message=self.proposal_message,
             reply_markup=ReplyKeyboardRemove(),
         )
-        self.__checkAndUpdateUser(
-            update=update, user_state="waiting_reply_proposal_message"
-        )
+        if status_send_message:
+            self.__checkAndUpdateUser(
+                update=update, user_state="waiting_reply_proposal_message"
+            )
 
     async def __waitingForProposalConfirmation(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -230,39 +255,38 @@ class Commands:
             user_id=update.message.from_user.id,
             proposal=update.message.text,
         )
-        await self.bot.bot.send_chat_action(
-            chat_id=update.effective_chat.id, action="typing"
-        )
-        random_time = uniform(10.0, 15.0)
-        await sleep(random_time)
-        await update.message.reply_markdown_v2(
-            text=f"```\n{update.message.text}\n```Deseja confirmar a sua proposta / ideia, para fazer um orçamento?",
+        status_send_message: bool = await self.__sendMessage(
+            update=update,
+            context=context,
+            initial_range=10.0,
+            final_range=15.0,
+            message=f"```\n{update.message.text}\n```Deseja confirmar a sua proposta / ideia, para fazer um orçamento?",
             reply_markup=reply_markup,
         )
-        self.__checkAndUpdateUser(
-            update=update,
-            user_state=f"waiting_confirm_proposal_message_{proposal_hash}",
-        )
+        if status_send_message:
+            self.__checkAndUpdateUser(
+                update=update,
+                user_state=f"waiting_confirm_proposal_message_{proposal_hash}",
+            )
 
     async def __declineOrAcceptTheProposal(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE, proposal_id: str
     ) -> None:
         if update.message.text.strip() == "✅ Confirmar":
             self.db.updateStatusOfProposal(proposal_id=proposal_id, isConfirmed=1)
-            await self.bot.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action="typing"
-            )
-            random_time = uniform(5.0, 9.0)
-            await sleep(random_time)
-            await update.message.reply_text(
-                text=f"Boa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua proposta foi confirmada com sucesso!\n\nEm breve entrarei em contato para darmos continuidade a esse futuro projeto!\n\nObrigado pela preferência!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
-                reply_to_message_id=update.message.id,
+            status_send_message: bool = await self.__sendMessage(
+                update=update,
+                context=context,
+                initial_range=5.0,
+                final_range=9.0,
+                message=f"Boa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua proposta foi confirmada com sucesso!\n\nEm breve entrarei em contato para darmos continuidade a esse futuro projeto!\n\nObrigado pela preferência!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
                 reply_markup=ReplyKeyboardRemove(),
             )
-            self.__checkAndUpdateUser(
-                update=update,
-                user_state="this_is_the_end",
-            )
+            if status_send_message:
+                self.__checkAndUpdateUser(
+                    update=update,
+                    user_state="this_is_the_end",
+                )
             proposal: dict | None = self.db.getProposal(proposal_id=proposal_id)
             if proposal:
                 await self.bot.bot.send_message(
@@ -271,20 +295,19 @@ class Commands:
                 )
         elif update.message.text.strip() == "❌ Recusar":
             self.db.updateStatusOfProposal(proposal_id=proposal_id, isConfirmed=0)
-            await self.bot.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action="typing"
-            )
-            random_time = uniform(5.0, 9.0)
-            await sleep(random_time)
-            await update.message.reply_text(
-                text=f"Ah, que pena {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua proposta foi cancelada com sucesso!\n\nEspero poder fazer negócio com você em breve!\n\nDe qualquer forma, obrigado pela preferência!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
-                reply_to_message_id=update.message.id,
+            status_send_message: bool = await self.__sendMessage(
+                update=update,
+                context=context,
+                initial_range=5.0,
+                final_range=9.0,
+                message=f"Ah, que pena {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua proposta foi cancelada com sucesso!\n\nEspero poder fazer negócio com você em breve!\n\nDe qualquer forma, obrigado pela preferência!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
                 reply_markup=ReplyKeyboardRemove(),
             )
-            self.__checkAndUpdateUser(
-                update=update,
-                user_state="this_is_the_end",
-            )
+            if status_send_message:
+                self.__checkAndUpdateUser(
+                    update=update,
+                    user_state="this_is_the_end",
+                )
             proposal: dict | None = self.db.getProposal(proposal_id=proposal_id)
             if proposal:
                 await self.bot.bot.send_message(
@@ -292,14 +315,13 @@ class Commands:
                     text=f"""Nova proposta enviada!\n\nEstado da proposta: ❌ Recusada!\n\nUsuário que enviou: @{proposal["user"]}\n\nProposta:\n\n{proposal["proposal"]}""",
                 )
         else:
-            await self.bot.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action="typing"
-            )
-            random_time = uniform(1.2, 2.0)
-            await sleep(random_time)
-            await update.message.reply_text(
-                text=self.invalid_command_message,
-                reply_to_message_id=update.message.id,
+            await self.__sendMessage(
+                update=update,
+                context=context,
+                initial_range=1.2,
+                final_range=2.0,
+                message=self.invalid_command_message,
+                reply_markup=None,
             )
 
     async def __subscribeToNewsletter(
@@ -309,14 +331,13 @@ class Commands:
             user_id=update.message.from_user.id
         )
         if has_user:
-            await self.bot.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action="typing"
-            )
-            random_time = uniform(5.0, 9.0)
-            await sleep(random_time)
-            await update.message.reply_text(
-                text=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n✅ Você já está inscrito para receber nossa newsletter!\n\nMuito obrigado! ❤️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
-                reply_to_message_id=update.message.id,
+            await self.__sendMessage(
+                update=update,
+                context=context,
+                initial_range=5.0,
+                final_range=9.0,
+                message=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n✅ Você já está inscrito para receber nossa newsletter!\n\nMuito obrigado! ❤️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                reply_markup=None,
             )
         else:
             keyboard_actions = [
@@ -328,19 +349,18 @@ class Commands:
             reply_markup = ReplyKeyboardMarkup(
                 keyboard=keyboard_actions, one_time_keyboard=False, resize_keyboard=True
             )
-            await self.bot.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action="typing"
-            )
-            random_time = uniform(6.0, 10.0)
-            await sleep(random_time)
-            await update.message.reply_text(
-                text=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n❓ Deseja realmente assinar nossa newsletter? ❓",
-                reply_to_message_id=update.message.id,
+            status_send_message: bool = await self.__sendMessage(
+                update=update,
+                context=context,
+                initial_range=6.0,
+                final_range=10.0,
+                message=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n❓ Deseja realmente assinar nossa newsletter? ❓",
                 reply_markup=reply_markup,
             )
-            self.__checkAndUpdateUser(
-                update=update, user_state="waiting_reply_subscribe_newsletter"
-            )
+            if status_send_message:
+                self.__checkAndUpdateUser(
+                    update=update, user_state="waiting_reply_subscribe_newsletter"
+                )
 
     async def __unsubscribeToNewsletter(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -358,77 +378,78 @@ class Commands:
             reply_markup = ReplyKeyboardMarkup(
                 keyboard=keyboard_actions, one_time_keyboard=False, resize_keyboard=True
             )
-            await self.bot.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action="typing"
-            )
-            random_time = uniform(6.0, 10.0)
-            await sleep(random_time)
-            await update.message.reply_text(
-                text=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n❓ Deseja realmente cancelar nossa newsletter? 😢 ❓",
-                reply_to_message_id=update.message.id,
+            status_send_message: bool = await self.__sendMessage(
+                update=update,
+                context=context,
+                initial_range=6.0,
+                final_range=10.0,
+                message=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nDeseja realmente cancelar nossa newsletter? 😢",
                 reply_markup=reply_markup,
             )
-            self.__checkAndUpdateUser(
-                update=update, user_state="waiting_reply_unsubscribe_newsletter"
-            )
+            if status_send_message:
+                self.__checkAndUpdateUser(
+                    update=update, user_state="waiting_reply_unsubscribe_newsletter"
+                )
         else:
-            await self.bot.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action="typing"
-            )
-            random_time = uniform(5.0, 9.0)
-            await sleep(random_time)
-            await update.message.reply_text(
-                text=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n❌ Você não está inscrito para receber nossa newsletter ainda!\n\nDe qualquer forma, muito obrigado! ❤️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
-                reply_to_message_id=update.message.id,
+            await self.__sendMessage(
+                update=update,
+                context=context,
+                initial_range=5.0,
+                final_range=9.0,
+                message=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n❌ Você não está inscrito para receber nossa newsletter ainda!\n\nDe qualquer forma, muito obrigado! ❤️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                reply_markup=None,
             )
 
     async def __declineOrAcceptNewsletter(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE, isRegister: bool
     ) -> None:
         if update.message.text.strip() == "✅ Confirmar":
-            await self.bot.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action="typing"
-            )
-            random_time = uniform(5.0, 9.0)
-            await sleep(random_time)
             if isRegister:
-                await update.message.reply_text(
-                    text=f"Você foi incluído(a) na newsletter com sucesso! ☺️\n\nAgradeço fortemente pelo seu interesse! ❤️\n\n⭐️ Em breve, começo a trazer novidades para você! ⭐️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
-                    reply_to_message_id=update.message.id,
+                status_send_message: bool = await self.__sendMessage(
+                    update=update,
+                    context=context,
+                    initial_range=5.0,
+                    final_range=9.0,
+                    message=f"Você foi incluído(a) na newsletter com sucesso! ☺️\n\nAgradeço fortemente pelo seu interesse! ❤️\n\n⭐️ Em breve, começo a trazer novidades para você! ⭐️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
                     reply_markup=ReplyKeyboardRemove(),
                 )
-                self.db.register_user_to_newsletter(user_id=update.message.from_user.id)
+                if status_send_message:
+                    self.db.register_user_to_newsletter(
+                        user_id=update.message.from_user.id
+                    )
             else:
-                await update.message.reply_text(
-                    text=f"Você foi removido(a) da newsletter com sucesso! 😢\n\nA partir de agora, você não receberá mais novidades por aqui! 😪\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
-                    reply_to_message_id=update.message.id,
+                status_send_message: bool = await self.__sendMessage(
+                    update=update,
+                    context=context,
+                    initial_range=5.0,
+                    final_range=9.0,
+                    message=f"Você foi removido(a) da newsletter com sucesso! 😢\n\nA partir de agora, você não receberá mais novidades por aqui! 😪\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
                     reply_markup=ReplyKeyboardRemove(),
                 )
-                self.db.unregister_user_to_newsletter(
-                    user_id=update.message.from_user.id
-                )
+                if status_send_message:
+                    self.db.unregister_user_to_newsletter(
+                        user_id=update.message.from_user.id
+                    )
             self.__checkAndUpdateUser(update=update, user_state="this_is_the_end")
         elif update.message.text.strip() == "❌ Recusar":
-            await self.bot.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action="typing"
-            )
-            random_time = uniform(5.0, 9.0)
-            await sleep(random_time)
-            await update.message.reply_text(
-                text=f"Entendido, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua solicitação de {"assinar a newsletter" if isRegister else "sair da newsletter"} foi cancelada com sucesso!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
-                reply_to_message_id=update.message.id,
+            status_send_message: bool = await self.__sendMessage(
+                update=update,
+                context=context,
+                initial_range=5.0,
+                final_range=9.0,
+                message=f"Entendido, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua solicitação de {"assinar a newsletter" if isRegister else "sair da newsletter"} foi cancelada com sucesso!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
                 reply_markup=ReplyKeyboardRemove(),
             )
-            self.__checkAndUpdateUser(update=update, user_state="this_is_the_end")
+            if status_send_message:
+                self.__checkAndUpdateUser(update=update, user_state="this_is_the_end")
         else:
-            await self.bot.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action="typing"
-            )
-            random_time = uniform(1.2, 2.0)
-            await sleep(random_time)
-            await update.message.reply_text(
-                text=self.invalid_command_message,
-                reply_to_message_id=update.message.id,
+            await self.__sendMessage(
+                update=update,
+                context=context,
+                initial_range=1.2,
+                final_range=2.0,
+                message=self.invalid_command_message,
+                reply_markup=None,
             )
 
     async def __listAllSubscribers(
@@ -444,37 +465,34 @@ class Commands:
                 for index in range(len(subscribers)):
                     message += f"\n\n{index + 1} - ✅ @{subscribers[index][0]}"
                 message += "\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!"
-                await self.bot.bot.send_chat_action(
-                    chat_id=update.effective_chat.id, action="typing"
-                )
-                random_time = uniform(5.0, 9.0)
-                await sleep(random_time)
-                await update.message.reply_text(
-                    text=message,
-                    reply_to_message_id=update.message.id,
+                await self.__sendMessage(
+                    update=update,
+                    context=context,
+                    initial_range=5.0,
+                    final_range=9.0,
+                    message=message,
+                    reply_markup=None,
                 )
             else:
-                await self.bot.bot.send_chat_action(
-                    chat_id=update.effective_chat.id, action="typing"
-                )
-                random_time = uniform(3.0, 5.0)
-                await sleep(random_time)
-                await update.message.reply_text(
-                    text="❌ Ainda não possuem inscritos na newsletter - Lamento :'(\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
-                    reply_to_message_id=update.message.id,
+                await self.__sendMessage(
+                    update=update,
+                    context=context,
+                    initial_range=3.0,
+                    final_range=5.0,
+                    message="❌ Ainda não possuem inscritos na newsletter - Lamento :'(\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                    reply_markup=None,
                 )
 
     async def __portfolioDev(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
-        await self.bot.bot.send_chat_action(
-            chat_id=update.effective_chat.id, action="typing"
-        )
-        random_time = uniform(5.0, 9.0)
-        await sleep(random_time)
-        await update.message.reply_text(
-            text=f"Obrigado pelo interesse!\n\nSegue abaixo o link do meu website, contendo um breve resumo de quem sou e dos projetos que já fiz, como dev!\n\nhttps://mathews.com.br/\n\nNo mais, é só chamar!",
-            reply_to_message_id=update.message.id,
+        await self.__sendMessage(
+            update=update,
+            context=context,
+            initial_range=5.0,
+            final_range=9.0,
+            message=f"Obrigado pelo interesse!\n\nSegue abaixo o link do meu website, contendo um breve resumo de quem sou e dos projetos que já fiz, como dev!\n\nhttps://mathews.com.br/\n\nNo mais, é só chamar!",
+            reply_markup=None,
         )
 
     async def __help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -498,13 +516,13 @@ class Commands:
         )
         for command in available_commands:
             message += f"\n\n{command} - {available_commands[command]}"
-        await self.bot.bot.send_chat_action(
-            chat_id=update.effective_chat.id, action="typing"
-        )
-        random_time = uniform(6.0, 10.0)
-        await sleep(random_time)
-        await update.message.reply_text(
-            text=message, reply_to_message_id=update.message.id
+        await self.__sendMessage(
+            update=update,
+            context=context,
+            initial_range=6.0,
+            final_range=10.0,
+            message=message,
+            reply_markup=None,
         )
 
     def apply_commands(self) -> None:

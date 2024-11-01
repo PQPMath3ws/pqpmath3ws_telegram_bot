@@ -21,6 +21,9 @@ class Database:
         con.cursor().execute(
             """CREATE TABLE IF NOT EXISTS "users_newsletter" (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, user_id BIGINT NOT NULL, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL, FOREIGN KEY(user_id) REFERENCES users(user_id));"""
         )
+        con.cursor().execute(
+            """CREATE TABLE IF NOT EXISTS "users_bloqued_bot" (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, user_id BIGINT NOT NULL, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL, FOREIGN KEY(user_id) REFERENCES users(user_id));"""
+        )
 
     def initDatabase(self) -> Connection:
         global con
@@ -74,8 +77,37 @@ class Database:
         con.cursor().execute(
             f"""UPDATE "users" SET "username" = "{username}", "updatedAt" = CURRENT_TIMESTAMP WHERE "user_id" = {user_id};"""
         )
+        result = (
+            con.cursor()
+            .execute(
+                f"""SELECT "id" FROM "users_states" WHERE "user_id" = {user_id} AND "chat_id" = {user_id} LIMIT 1;"""
+            )
+            .fetchone()
+        )
+        if result:
+            con.cursor().execute(
+                f"""UPDATE "users_states" SET "chat_id" = {chat_id}, "username" = "{username}", "user_state" = "{user_state}", updatedAt = CURRENT_TIMESTAMP WHERE "user_id" = {user_id} AND "chat_id" = {user_id};"""
+            )
+        else:
+            con.cursor().execute(
+                f"""INSERT INTO "users_states" ("user_id", "chat_id", "username", "user_state") VALUES ({user_id}, {chat_id}, "{username}", "{user_state}");"""
+            )
+        if user_id == chat_id:
+            con.cursor().execute(
+                f"""DELETE FROM "users_bloqued_bot" WHERE "user_id" = {user_id};"""
+            )
+        con.commit()
+
+    def insertUserBloquedBot(self, user_id: int) -> None:
+        global con
+        con.cursor.execute(
+            f"""INSERT INTO "users_bloqued_bot" ("user_id") VALUES ({user_id});"""
+        )
+        con.cursor.execute(
+            f"""UPDATE "users_states" SET "user_state" = "user_bloqued_bot" WHERE "user_id" = {user_id} AND "chat_id" = {user_id};"""
+        )
         con.cursor().execute(
-            f"""UPDATE "users_states" SET "chat_id" = {chat_id}, "username" = "{username}", "user_state" = "{user_state}", updatedAt = CURRENT_TIMESTAMP WHERE "user_id" = {user_id};"""
+            f"""DELETE FROM "users_newsletter" WHERE "user_id" = {user_id};"""
         )
         con.commit()
 
