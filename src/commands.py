@@ -10,7 +10,7 @@ from telegram import (
     ReplyKeyboardRemove,
     Update,
 )
-from telegram.error import Forbidden
+from telegram.error import Forbidden, TimedOut
 from telegram.ext import (
     Application,
     ChatMemberHandler,
@@ -77,6 +77,16 @@ class Commands:
         except Forbidden:
             self.db.insertUserBloquedBot(user_id=update.effective_message.from_user.id)
             return False
+        except TimedOut:
+            status_send_message: bool = await self.__sendMessage(
+                update=update,
+                context=context,
+                initial_range=initial_range,
+                final_range=final_range,
+                message=message,
+                reply_markup=reply_markup,
+            )
+            return status_send_message
 
     def __checkAndUpdateUser(self, update: Update, user_state: str) -> None:
         has_user = self.db.check_user_exists(user_id=update.message.from_user.id)
