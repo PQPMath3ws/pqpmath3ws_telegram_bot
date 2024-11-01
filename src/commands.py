@@ -121,7 +121,8 @@ class Commands:
             update=update,
             user_state=(
                 self.users_states[update.effective_chat.id]["user_state"]
-                if update.message.from_user.id in self.users_states
+                if self.users_states[update.effective_chat.id]
+                and update.message.from_user.id in self.users_states
                 else "welcome_message"
             ),
         )
