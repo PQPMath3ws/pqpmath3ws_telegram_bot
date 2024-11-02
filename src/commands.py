@@ -79,7 +79,6 @@ class Commands:
             )
             count = 0
             random_time = uniform(initial_range, final_range)
-            await sleep(random_time)
             while count < random_time:
                 await self.bot.bot.send_chat_action(
                     chat_id=update.effective_chat.id, action=ChatAction.TYPING
