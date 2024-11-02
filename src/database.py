@@ -118,7 +118,8 @@ class Database:
     def createProposal(self, proposal_id: str, user_id: int, proposal: str) -> None:
         global con
         con.cursor().execute(
-            f"""INSERT INTO "users_proposals" ("id", "user_id", "proposal") VALUES ("{proposal_id}", {user_id}, "{proposal}");"""
+            f"""INSERT INTO "users_proposals" ("id", "user_id", "proposal") VALUES ("{proposal_id}", {user_id}, ?);""",
+            (proposal,)
         )
         con.commit()
 
@@ -218,7 +219,8 @@ class Database:
     ) -> None:
         global con
         con.cursor().execute(
-            f"""INSERT INTO "newsletters_messages" ("id", "newsletter_message") VALUES ("{newsletter_id}", "{newsletter_message}");"""
+            f"""INSERT INTO "newsletters_messages" ("id", "newsletter_message") VALUES ("{newsletter_id}", ?);""",
+            (newsletter_message,),
         )
         con.commit()
 
