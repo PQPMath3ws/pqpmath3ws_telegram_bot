@@ -10,6 +10,7 @@ from telegram import (
     ReplyKeyboardRemove,
     Update,
 )
+from telegram.constants import ChatAction
 from telegram.error import Forbidden, TimedOut
 from telegram.ext import (
     Application,
@@ -76,11 +77,15 @@ class Commands:
                 if isMardownText
                 else update.message.reply_text
             )
-            await self.bot.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action="typing"
-            )
+            count = 0
             random_time = uniform(initial_range, final_range)
             await sleep(random_time)
+            while count < random_time:
+                await self.bot.bot.send_chat_action(
+                    chat_id=update.effective_chat.id, action=ChatAction.TYPING
+                )
+                await sleep(1)
+                count += 1
             await replyTextCommand(
                 text=message,
                 reply_to_message_id=update.message.id if willReplyMessage else None,
@@ -648,7 +653,7 @@ class Commands:
                     context=context,
                     initial_range=5.0,
                     final_range=9.0,
-                    message=f"Enviando sua mensagem / o seu anúncio a todos os assinantes da newsletter - Um momento...\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                    message=f"Enviando sua mensagem / o seu anúncio a todos os assinantes da newsletter - Um momento...",
                     willReplyMessage=True,
                     reply_markup=ReplyKeyboardRemove(),
                 )
@@ -660,7 +665,6 @@ class Commands:
                     await self.__sendNewsletterToAllSubscribers(
                         update=update, context=context, newsletter_id=newsletter_id
                     )
-                    # send newsletter to users here
                     status_send_success_newsletter: bool = await self.__sendMessage(
                         isMardownText=False,
                         update=update,
@@ -668,7 +672,7 @@ class Commands:
                         initial_range=5.0,
                         final_range=9.0,
                         message=f"Mensagens / anúncios enviados com sucesso a todos os assinantes!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
-                        willReplyMessage=True,
+                        willReplyMessage=False,
                         reply_markup=ReplyKeyboardRemove(),
                     )
                     if status_send_success_newsletter:
@@ -721,13 +725,13 @@ class Commands:
             if subscribers and newsletter_message:
                 for subscriber in subscribers:
                     await self.bot.bot.send_chat_action(
-                        chat_id=subscriber[1], action="typing"
+                        chat_id=subscriber[1], action=ChatAction.TYPING
                     )
                     random_time = uniform(15.0, 20.0)
                     await sleep(random_time)
                     await self.bot.bot.send_message(
                         chat_id=subscriber[1],
-                        text=newsletter_message[0],
+                        text=f"Nova mensagem do @PQPMath3ws_BOT!\n________________________\n\n{newsletter_message[0]}",
                     )
 
     async def __portfolioDev(
