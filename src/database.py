@@ -1,4 +1,5 @@
 from sqlite3 import connect, Connection
+from typing import Any
 
 
 class Database:
@@ -23,6 +24,9 @@ class Database:
         )
         con.cursor().execute(
             """CREATE TABLE IF NOT EXISTS "users_bloqued_bot" (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, user_id BIGINT NOT NULL, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL, FOREIGN KEY(user_id) REFERENCES users(user_id));"""
+        )
+        con.cursor().execute(
+            """CREATE TABLE IF NOT EXISTS "newsletters_messages" (id TEXT NOT NULL PRIMARY KEY UNIQUE, newsletter_message TEXT NOT NULL, isConfirmed TINYINT, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL, updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL);"""
         )
 
     def initDatabase(self) -> Connection:
@@ -181,7 +185,21 @@ class Database:
         )
         con.commit()
 
-    def getAllSubscribers(self):
+    def getAllSubscribers(self) -> list[Any] | None:
+        global con
+        result = (
+            con.cursor()
+            .execute(
+                """SELECT "users_states"."username", "users_newsletter"."user_id" FROM "users_states" INNER JOIN "users_newsletter" ON ("users_newsletter"."user_id" = "users_states"."user_id" AND "users_newsletter"."user_id" = "users_states"."chat_id");"""
+            )
+            .fetchall()
+        )
+        if len(result) > 0:
+            return result
+        else:
+            return None
+
+    def checkHasSubscribers(self) -> bool:
         global con
         result = (
             con.cursor()
@@ -191,6 +209,36 @@ class Database:
             .fetchall()
         )
         if len(result) > 0:
+            return True
+        else:
+            return False
+
+    def createNewsletterMessage(
+        self, newsletter_id: str, newsletter_message: str
+    ) -> None:
+        global con
+        con.cursor().execute(
+            f"""INSERT INTO "newsletters_messages" ("id", "newsletter_message") VALUES ("{newsletter_id}", "{newsletter_message}");"""
+        )
+        con.commit()
+
+    def updateStatusOfNewNewsletter(self, newsletter_id: str, isConfirmed: int) -> None:
+        global con
+        con.cursor().execute(
+            f"""UPDATE "newsletters_messages" SET "isConfirmed" = {isConfirmed}, updatedAt = CURRENT_TIMESTAMP WHERE "id" = "{newsletter_id}";"""
+        )
+        con.commit()
+
+    def getNewsletterMessage(self, newsletter_id: str) -> list[Any] | None:
+        global con
+        result = (
+            con.cursor()
+            .execute(
+                f"""SELECT "newsletter_message" FROM "newsletters_messages" WHERE "id" = "{newsletter_id}" LIMIT 1;"""
+            )
+            .fetchone()
+        )
+        if result:
             return result
         else:
             return None

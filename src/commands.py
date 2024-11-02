@@ -32,6 +32,12 @@ class Commands:
     subscribers_list_initial_message: str = (
         "Aqui vai uma lista do(s) user(s) que estão inscritos na newsletter:"
     )
+    no_subscribers_message: str = (
+        "❌ Ainda não possuem inscritos na newsletter - Lamento :'(\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!"
+    )
+    proposal_newsletter_message: str = (
+        "Por favor, digite abaixo a mensagem / o anúncio que desejas enviar aos assinantes da newsletter."
+    )
 
     def __init__(
         self,
@@ -55,22 +61,29 @@ class Commands:
 
     async def __sendMessage(
         self,
+        isMardownText: bool,
         update: Update,
         context: ContextTypes.DEFAULT_TYPE,
         initial_range: float,
         final_range: float,
         message: str,
+        willReplyMessage: bool,
         reply_markup: Any,
     ) -> bool:
         try:
+            replyTextCommand = (
+                update.message.reply_markdown_v2
+                if isMardownText
+                else update.message.reply_text
+            )
             await self.bot.bot.send_chat_action(
                 chat_id=update.effective_chat.id, action="typing"
             )
             random_time = uniform(initial_range, final_range)
             await sleep(random_time)
-            await update.message.reply_text(
+            await replyTextCommand(
                 text=message,
-                reply_to_message_id=update.message.id,
+                reply_to_message_id=update.message.id if willReplyMessage else None,
                 reply_markup=reply_markup if reply_markup else None,
             )
             return True
@@ -79,11 +92,13 @@ class Commands:
             return False
         except TimedOut:
             status_send_message: bool = await self.__sendMessage(
+                isMardownText=isMardownText,
                 update=update,
                 context=context,
                 initial_range=initial_range,
                 final_range=final_range,
                 message=message,
+                willReplyMessage=willReplyMessage,
                 reply_markup=reply_markup,
             )
             return status_send_message
@@ -147,11 +162,13 @@ class Commands:
                 await self.__help(update=update, context=context)
             else:
                 await self.__sendMessage(
+                    isMardownText=False,
                     update=update,
                     context=context,
                     initial_range=1.2,
                     final_range=2.0,
                     message=self.invalid_command_message,
+                    willReplyMessage=True,
                     reply_markup=None,
                 )
         elif current_user_state == "waiting_reply_proposal_message":
@@ -164,6 +181,14 @@ class Commands:
                     "waiting_confirm_proposal_message_", ""
                 ),
             )
+        elif current_user_state.startswith("waiting_confirm_send_new_newsletter_"):
+            await self.__declineOrAcceptTheNewsletter(
+                update=update,
+                context=context,
+                newsletter_id=current_user_state.replace(
+                    "waiting_confirm_send_new_newsletter_", ""
+                ),
+            )
         elif current_user_state == "waiting_reply_subscribe_newsletter":
             await self.__declineOrAcceptNewsletter(
                 update=update, context=context, isRegister=True
@@ -171,6 +196,10 @@ class Commands:
         elif current_user_state == "waiting_reply_unsubscribe_newsletter":
             await self.__declineOrAcceptNewsletter(
                 update=update, context=context, isRegister=False
+            )
+        elif current_user_state == "waiting_reply_send_new_newsletter":
+            await self.__waitingForSendNewsletterConfirmation(
+                update=update, context=context
             )
 
     async def __enteringOnChat(
@@ -216,11 +245,13 @@ class Commands:
             keyboard=keyboard_actions, one_time_keyboard=False, resize_keyboard=True
         )
         status_send_message: bool = await self.__sendMessage(
+            isMardownText=False,
             update=update,
             context=context,
             initial_range=5.0,
             final_range=9.0,
             message=f"Olá, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nFico feliz que tenha me contactado! 😁\n\nEm que posso ser útil no momento?",
+            willReplyMessage=True,
             reply_markup=reply_markup,
         )
         if status_send_message:
@@ -232,11 +263,13 @@ class Commands:
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
         status_send_message: bool = await self.__sendMessage(
+            isMardownText=False,
             update=update,
             context=context,
             initial_range=3.0,
             final_range=5.0,
             message=self.proposal_message,
+            willReplyMessage=True,
             reply_markup=ReplyKeyboardRemove(),
         )
         if status_send_message:
@@ -267,11 +300,13 @@ class Commands:
             proposal=update.message.text,
         )
         status_send_message: bool = await self.__sendMessage(
+            isMardownText=True,
             update=update,
             context=context,
             initial_range=10.0,
             final_range=15.0,
             message=f"```\n{update.message.text}\n```Deseja confirmar a sua proposta / ideia, para fazer um orçamento?",
+            willReplyMessage=True,
             reply_markup=reply_markup,
         )
         if status_send_message:
@@ -286,11 +321,13 @@ class Commands:
         if update.message.text.strip() == "✅ Confirmar":
             self.db.updateStatusOfProposal(proposal_id=proposal_id, isConfirmed=1)
             status_send_message: bool = await self.__sendMessage(
+                isMardownText=False,
                 update=update,
                 context=context,
                 initial_range=5.0,
                 final_range=9.0,
                 message=f"Boa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua proposta foi confirmada com sucesso!\n\nEm breve entrarei em contato para darmos continuidade a esse futuro projeto!\n\nObrigado pela preferência!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                willReplyMessage=True,
                 reply_markup=ReplyKeyboardRemove(),
             )
             if status_send_message:
@@ -307,11 +344,13 @@ class Commands:
         elif update.message.text.strip() == "❌ Recusar":
             self.db.updateStatusOfProposal(proposal_id=proposal_id, isConfirmed=0)
             status_send_message: bool = await self.__sendMessage(
+                isMardownText=False,
                 update=update,
                 context=context,
                 initial_range=5.0,
                 final_range=9.0,
                 message=f"Ah, que pena {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua proposta foi cancelada com sucesso!\n\nEspero poder fazer negócio com você em breve!\n\nDe qualquer forma, obrigado pela preferência!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                willReplyMessage=True,
                 reply_markup=ReplyKeyboardRemove(),
             )
             if status_send_message:
@@ -327,11 +366,13 @@ class Commands:
                 )
         else:
             await self.__sendMessage(
+                isMardownText=False,
                 update=update,
                 context=context,
                 initial_range=1.2,
                 final_range=2.0,
                 message=self.invalid_command_message,
+                willReplyMessage=True,
                 reply_markup=None,
             )
 
@@ -343,11 +384,13 @@ class Commands:
         )
         if has_user:
             await self.__sendMessage(
+                isMardownText=False,
                 update=update,
                 context=context,
                 initial_range=5.0,
                 final_range=9.0,
                 message=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n✅ Você já está inscrito para receber nossa newsletter!\n\nMuito obrigado! ❤️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                willReplyMessage=True,
                 reply_markup=None,
             )
         else:
@@ -361,11 +404,13 @@ class Commands:
                 keyboard=keyboard_actions, one_time_keyboard=False, resize_keyboard=True
             )
             status_send_message: bool = await self.__sendMessage(
+                isMardownText=False,
                 update=update,
                 context=context,
                 initial_range=6.0,
                 final_range=10.0,
                 message=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nDeseja realmente assinar nossa newsletter?",
+                willReplyMessage=True,
                 reply_markup=reply_markup,
             )
             if status_send_message:
@@ -390,11 +435,13 @@ class Commands:
                 keyboard=keyboard_actions, one_time_keyboard=False, resize_keyboard=True
             )
             status_send_message: bool = await self.__sendMessage(
+                isMardownText=False,
                 update=update,
                 context=context,
                 initial_range=6.0,
                 final_range=10.0,
                 message=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nDeseja realmente cancelar nossa newsletter? 😢",
+                willReplyMessage=True,
                 reply_markup=reply_markup,
             )
             if status_send_message:
@@ -403,11 +450,13 @@ class Commands:
                 )
         else:
             await self.__sendMessage(
+                isMardownText=False,
                 update=update,
                 context=context,
                 initial_range=5.0,
                 final_range=9.0,
                 message=f"Opa, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\n❌ Você não está inscrito para receber nossa newsletter ainda!\n\nDe qualquer forma, muito obrigado! ❤️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                willReplyMessage=True,
                 reply_markup=None,
             )
 
@@ -417,11 +466,13 @@ class Commands:
         if update.message.text.strip() == "✅ Confirmar":
             if isRegister:
                 status_send_message: bool = await self.__sendMessage(
+                    isMardownText=False,
                     update=update,
                     context=context,
                     initial_range=5.0,
                     final_range=9.0,
                     message=f"Você foi incluído(a) na newsletter com sucesso! ☺️\n\nAgradeço fortemente pelo seu interesse! ❤️\n\n⭐️ Em breve, começo a trazer novidades para você! ⭐️\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                    willReplyMessage=True,
                     reply_markup=ReplyKeyboardRemove(),
                 )
                 if status_send_message:
@@ -430,11 +481,13 @@ class Commands:
                     )
             else:
                 status_send_message: bool = await self.__sendMessage(
+                    isMardownText=False,
                     update=update,
                     context=context,
                     initial_range=5.0,
                     final_range=9.0,
                     message=f"Você foi removido(a) da newsletter com sucesso! 😢\n\nA partir de agora, você não receberá mais novidades por aqui! 😪\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                    willReplyMessage=True,
                     reply_markup=ReplyKeyboardRemove(),
                 )
                 if status_send_message:
@@ -444,22 +497,26 @@ class Commands:
             self.__checkAndUpdateUser(update=update, user_state="this_is_the_end")
         elif update.message.text.strip() == "❌ Recusar":
             status_send_message: bool = await self.__sendMessage(
+                isMardownText=False,
                 update=update,
                 context=context,
                 initial_range=5.0,
                 final_range=9.0,
                 message=f"Entendido, {update.message.from_user.first_name} {update.message.from_user.last_name}!\n\nSua solicitação de {"assinar a newsletter" if isRegister else "sair da newsletter"} foi cancelada com sucesso!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                willReplyMessage=True,
                 reply_markup=ReplyKeyboardRemove(),
             )
             if status_send_message:
                 self.__checkAndUpdateUser(update=update, user_state="this_is_the_end")
         else:
             await self.__sendMessage(
+                isMardownText=False,
                 update=update,
                 context=context,
                 initial_range=1.2,
                 final_range=2.0,
                 message=self.invalid_command_message,
+                willReplyMessage=True,
                 reply_markup=None,
             )
 
@@ -477,32 +534,213 @@ class Commands:
                     message += f"\n\n{index + 1} - ✅ @{subscribers[index][0]}"
                 message += "\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!"
                 await self.__sendMessage(
+                    isMardownText=False,
                     update=update,
                     context=context,
                     initial_range=5.0,
                     final_range=9.0,
                     message=message,
+                    willReplyMessage=True,
                     reply_markup=None,
                 )
             else:
                 await self.__sendMessage(
+                    isMardownText=False,
                     update=update,
                     context=context,
                     initial_range=3.0,
                     final_range=5.0,
-                    message="❌ Ainda não possuem inscritos na newsletter - Lamento :'(\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                    message=self.no_subscribers_message,
+                    willReplyMessage=True,
                     reply_markup=None,
                 )
+
+    async def __sendNewsletterToSubscribers(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        if (
+            update.effective_chat.id == self.owner_user_id
+            or update.effective_chat.id == self.proposal_chat_id
+        ):
+            subscribers = self.db.checkHasSubscribers()
+            if subscribers:
+                status_send_message: bool = await self.__sendMessage(
+                    isMardownText=False,
+                    update=update,
+                    context=context,
+                    initial_range=4.0,
+                    final_range=6.0,
+                    message=self.proposal_newsletter_message,
+                    willReplyMessage=True,
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+                if status_send_message:
+                    self.__checkAndUpdateUser(
+                        update=update, user_state="waiting_reply_send_new_newsletter"
+                    )
+            else:
+                await self.__sendMessage(
+                    isMardownText=False,
+                    update=update,
+                    context=context,
+                    initial_range=4.0,
+                    final_range=6.0,
+                    message=self.no_subscribers_message,
+                    willReplyMessage=True,
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+
+    async def __waitingForSendNewsletterConfirmation(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        if (
+            update.effective_chat.id == self.owner_user_id
+            or update.effective_chat.id == self.proposal_chat_id
+        ):
+            newsletter_hash: str = md5(
+                string=f"{update.effective_chat.id}_{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}".encode(
+                    "utf-8"
+                )
+            ).hexdigest()
+            keyboard_actions = [
+                [
+                    KeyboardButton(text="✅ Confirmar"),
+                    KeyboardButton(text="❌ Recusar"),
+                ],
+            ]
+            reply_markup = ReplyKeyboardMarkup(
+                keyboard=keyboard_actions, one_time_keyboard=False, resize_keyboard=True
+            )
+            self.db.createNewsletterMessage(
+                newsletter_id=newsletter_hash,
+                newsletter_message=update.message.text,
+            )
+            status_send_message: bool = await self.__sendMessage(
+                isMardownText=True,
+                update=update,
+                context=context,
+                initial_range=10.0,
+                final_range=15.0,
+                message=f"```\n{update.message.text}\n```Deseja confirmar a sua mensagem / o seu anúncio, para enviar aos assinantes?",
+                willReplyMessage=True,
+                reply_markup=reply_markup,
+            )
+            if status_send_message:
+                self.__checkAndUpdateUser(
+                    update=update,
+                    user_state=f"waiting_confirm_send_new_newsletter_{newsletter_hash}",
+                )
+
+    async def __declineOrAcceptTheNewsletter(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE, newsletter_id: str
+    ) -> None:
+        if (
+            update.effective_chat.id == self.owner_user_id
+            or update.effective_chat.id == self.proposal_chat_id
+        ):
+            if update.message.text.strip() == "✅ Confirmar":
+                self.db.updateStatusOfNewNewsletter(
+                    newsletter_id=newsletter_id, isConfirmed=1
+                )
+                status_start_send_newsletter: bool = await self.__sendMessage(
+                    isMardownText=False,
+                    update=update,
+                    context=context,
+                    initial_range=5.0,
+                    final_range=9.0,
+                    message=f"Enviando sua mensagem / o seu anúncio a todos os assinantes da newsletter - Um momento...\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                    willReplyMessage=True,
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+                if status_start_send_newsletter:
+                    self.__checkAndUpdateUser(
+                        update=update,
+                        user_state="waiting_send_newsletters",
+                    )
+                    await self.__sendNewsletterToAllSubscribers(
+                        update=update, context=context, newsletter_id=newsletter_id
+                    )
+                    # send newsletter to users here
+                    status_send_success_newsletter: bool = await self.__sendMessage(
+                        isMardownText=False,
+                        update=update,
+                        context=context,
+                        initial_range=5.0,
+                        final_range=9.0,
+                        message=f"Mensagens / anúncios enviados com sucesso a todos os assinantes!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                        willReplyMessage=True,
+                        reply_markup=ReplyKeyboardRemove(),
+                    )
+                    if status_send_success_newsletter:
+                        self.__checkAndUpdateUser(
+                            update=update,
+                            user_state="this_is_the_end",
+                        )
+            elif update.message.text.strip() == "❌ Recusar":
+                self.db.updateStatusOfNewNewsletter(
+                    newsletter_id=newsletter_id, isConfirmed=0
+                )
+                status_send_message: bool = await self.__sendMessage(
+                    isMardownText=False,
+                    update=update,
+                    context=context,
+                    initial_range=5.0,
+                    final_range=9.0,
+                    message="Sua mensagem / anúncio foi cancelado com sucesso!\n\nNão será enviado nada a todos os assinantes!\n\nOBS: Para reiniciar o bot, basta digitar o comando /start novamente!",
+                    willReplyMessage=True,
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+                if status_send_message:
+                    self.__checkAndUpdateUser(
+                        update=update,
+                        user_state="this_is_the_end",
+                    )
+            else:
+                await self.__sendMessage(
+                    isMardownText=False,
+                    update=update,
+                    context=context,
+                    initial_range=1.2,
+                    final_range=2.0,
+                    message=self.invalid_command_message,
+                    willReplyMessage=True,
+                    reply_markup=None,
+                )
+
+    async def __sendNewsletterToAllSubscribers(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE, newsletter_id: str
+    ) -> None:
+        if (
+            update.effective_chat.id == self.owner_user_id
+            or update.effective_chat.id == self.proposal_chat_id
+        ):
+            subscribers = self.db.getAllSubscribers()
+            newsletter_message = self.db.getNewsletterMessage(
+                newsletter_id=newsletter_id
+            )
+            if subscribers and newsletter_message:
+                for subscriber in subscribers:
+                    await self.bot.bot.send_chat_action(
+                        chat_id=subscriber[1], action="typing"
+                    )
+                    random_time = uniform(15.0, 20.0)
+                    await sleep(random_time)
+                    await self.bot.bot.send_message(
+                        chat_id=subscriber[1],
+                        text=newsletter_message[0],
+                    )
 
     async def __portfolioDev(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
         await self.__sendMessage(
+            isMardownText=False,
             update=update,
             context=context,
             initial_range=5.0,
             final_range=9.0,
             message=f"Obrigado pelo interesse!\n\nSegue abaixo o link do meu website, contendo um breve resumo de quem sou e dos projetos que já fiz, como dev!\n\nhttps://mathews.com.br/\n\nNo mais, é só chamar!",
+            willReplyMessage=True,
             reply_markup=None,
         )
 
@@ -514,6 +752,7 @@ class Commands:
             **(
                 {
                     "/listsubscribers": "Mostra uma lista (se tiver) de usuários inscritos na newsletter do ADM do bot.",
+                    "/sendNewsletterToSubscribers": "Permite enviar um anúncio através do bot, para todos os assinantes do bot.",
                 }
                 if update.effective_chat.id == self.owner_user_id
                 or update.effective_chat.id == self.proposal_chat_id
@@ -528,11 +767,13 @@ class Commands:
         for command in available_commands:
             message += f"\n\n{command} - {available_commands[command]}"
         await self.__sendMessage(
+            isMardownText=False,
             update=update,
             context=context,
             initial_range=6.0,
             final_range=10.0,
             message=message,
+            willReplyMessage=True,
             reply_markup=None,
         )
 
@@ -548,6 +789,11 @@ class Commands:
         )
         self.bot.add_handler(
             handler=CommandHandler("listsubscribers", self.__listAllSubscribers)
+        )
+        self.bot.add_handler(
+            handler=CommandHandler(
+                "sendNewsletterToSubscribers", self.__sendNewsletterToSubscribers
+            )
         )
         self.bot.add_handler(handler=CommandHandler("portfolio", self.__portfolioDev))
         self.bot.add_handler(handler=CommandHandler("help", self.__help))
