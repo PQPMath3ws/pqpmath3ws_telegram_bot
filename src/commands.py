@@ -723,11 +723,14 @@ class Commands:
             )
             if subscribers and newsletter_message:
                 for subscriber in subscribers:
-                    await self.bot.bot.send_chat_action(
-                        chat_id=subscriber[1], action=ChatAction.TYPING
-                    )
+                    count = 0
                     random_time = uniform(15.0, 20.0)
-                    await sleep(random_time)
+                    while count < random_time:
+                        await self.bot.bot.send_chat_action(
+                            chat_id=subscriber[1], action=ChatAction.TYPING
+                        )
+                        await sleep(1)
+                        count += 1
                     await self.bot.bot.send_message(
                         chat_id=subscriber[1],
                         text=f"Nova mensagem do @PQPMath3ws_BOT!\n________________________\n\n{newsletter_message[0]}",
