@@ -1,6 +1,6 @@
 # Telegram Bot (PoC)
 
-Aqui jás um projeto **INTERMEDIÁRIO** em estágio **de desenvolvimento** de um bot do **Telegram**! - ***EBA!!!***
+Aqui existe e vive um projeto **INTERMEDIÁRIO** em estágio **de desenvolvimento** de um bot do **Telegram**! - ***EBA!!!***
 
 **Tecnologias/libs usadas e requiridas:**
 
